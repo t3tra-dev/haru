@@ -4,7 +4,7 @@ at a modular level in a Haru web application. Blueprints allow you to split your
 into components, each with its own routes and middleware.
 """
 
-from typing import Callable, List, Optional, Type, TypeVar
+from typing import Callable, List, Optional, Type, TypeVar, Any
 from .router import Router
 from .middleware import Middleware
 
@@ -53,7 +53,7 @@ class Blueprint:
         :param methods: A list of HTTP methods allowed for this route (GET, POST, etc.).
         :type methods: Optional[List[str]]
         :return: A decorator to wrap the route handler function.
-        :rtype: Callable
+        :rtype: Callable[[Callable], Callable]
         """
         def decorator(func: Callable) -> Callable:
             full_path = self._full_path(path)
@@ -108,7 +108,7 @@ class Blueprint:
             return f"{self.url_prefix.rstrip('/')}/{path.lstrip('/')}"
         return path
 
-    def register(self, app) -> None:
+    def register(self, app: Any) -> None:
         """
         Register all routes in the blueprint with the main application.
 

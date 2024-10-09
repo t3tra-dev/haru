@@ -42,7 +42,7 @@ class Middleware:
         """
         self.options.update(options)
 
-    def before_request(self, request: Request) -> None:
+    async def before_request(self, request: Request) -> None:
         """
         Called before the request is processed. This method can be overridden to implement
         behavior that needs to occur before the main request handler is executed.
@@ -52,7 +52,7 @@ class Middleware:
         """
         pass
 
-    def after_request(self, request: Request, response: Response) -> Optional[Response]:
+    async def after_request(self, request: Request, response: Response) -> Optional[Response]:
         """
         Called after the request is processed but before the response is sent. This method
         can modify the response object if necessary.
@@ -66,7 +66,7 @@ class Middleware:
         """
         return response
 
-    def before_response(self, request: Request, response: Response) -> None:
+    async def before_response(self, request: Request, response: Response) -> None:
         """
         Called right before the response is sent to the client. This method can be overridden
         to implement behavior that needs to occur just before the response is returned.
@@ -78,7 +78,7 @@ class Middleware:
         """
         pass
 
-    def after_response(self, request: Request, response: Response) -> None:
+    async def after_response(self, request: Request, response: Response) -> None:
         """
         Called after the response has been sent to the client. This method can be overridden
         to implement behavior that needs to occur after the response is sent.
