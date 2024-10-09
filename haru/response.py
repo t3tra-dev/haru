@@ -7,6 +7,7 @@ and other properties that are sent back to the client after processing an HTTP r
 from typing import Any, Dict, Optional
 import mimetypes
 import os
+import json
 from .wrappers import FileWrapper, BytesWrapper
 
 __all__ = ['Response']
@@ -49,14 +50,7 @@ class Response:
 
         # Automatically set Content-Type if not provided
         if self.content_type is None:
-            if isinstance(content, (str, bytes)):
-                self.content_type = 'text/plain; charset=utf-8'
-            elif isinstance(content, FileWrapper):
-                self.content_type = mimetypes.guess_type(content.filepath)[0] or 'application/octet-stream'
-            elif isinstance(content, BytesWrapper):
-                self.content_type = 'application/octet-stream'
-            else:
-                self.content_type = 'application/octet-stream'
+            self.content_type = self._infer_content_type()
 
         # Set Content-Type header
         self.headers.setdefault('Content-Type', self.content_type)
@@ -71,6 +65,26 @@ class Response:
                 attachment_filename = 'download'
             self.headers['Content-Disposition'] = f'attachment; filename="{attachment_filename}"'
 
+    def _infer_content_type(self) -> str:
+        """
+        Infers the content type based on the content.
+
+        :return: The inferred content type.
+        :rtype: str
+        """
+        if isinstance(self.content, str):
+            return 'text/plain; charset=utf-8'
+        elif isinstance(self.content, bytes):
+            return 'application/octet-stream'
+        elif isinstance(self.content, (dict, list)):
+            return 'application/json'
+        elif isinstance(self.content, FileWrapper):
+            return mimetypes.guess_type(self.content.filepath)[0] or 'application/octet-stream'
+        elif isinstance(self.content, BytesWrapper):
+            return 'application/octet-stream'
+        else:
+            return 'application/octet-stream'
+
     def iter_content(self):
         """
         Yield the response content in chunks. This method is useful for streaming large files
@@ -82,18 +96,16 @@ class Response:
         """
         if isinstance(self.content, (bytes, str)):
             yield self.get_content()
-        elif isinstance(self.content, FileWrapper):
-            yield from self.content
-        elif isinstance(self.content, BytesWrapper):
+        elif isinstance(self.content, (FileWrapper, BytesWrapper)):
             yield from self.content
         else:
             raise TypeError("Unsupported content type for response")
 
     def get_content(self) -> bytes:
         """
-        Return the response content as bytes. If the content is a string, it is encoded to UTF-8.
+        Return the response content as bytes.
 
-        :raises TypeError: If the content is neither bytes nor a string.
+        :raises TypeError: If the content is of an unsupported type.
         :return: The response content as bytes.
         :rtype: bytes
         """
@@ -101,5 +113,7 @@ class Response:
             return self.content
         elif isinstance(self.content, str):
             return self.content.encode('utf-8')
+        elif isinstance(self.content, (dict, list)):
+            return json.dumps(self.content).encode('utf-8')
         else:
-            raise TypeError("Response content must be str or bytes")
+            return str(self.content).encode('utf-8')

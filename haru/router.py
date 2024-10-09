@@ -5,13 +5,10 @@ the correct handler is executed based on the request's path and HTTP method.
 """
 
 from __future__ import annotations
-from typing import Callable, Dict, List, Optional, Tuple, Any, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Tuple, Any, Pattern
 import re
 
 __all__ = ['Route', 'Router']
-
-if TYPE_CHECKING:
-    from .blueprint import Blueprint
 
 
 class Route:
@@ -19,7 +16,7 @@ class Route:
     Represents a single route in the application, which binds a URL path to a handler function
     and allows specific HTTP methods.
 
-    :param path: The URL path pattern for this route. Supports regex-like matching.
+    :param path: The URL path pattern for this route. Supports parameterized paths like '/users/{id}'.
     :type path: str
     :param handler: The function that handles requests matching this route.
     :type handler: Callable
@@ -29,21 +26,36 @@ class Route:
     :type blueprint: Optional[Blueprint]
     """
 
-    def __init__(self, path: str, handler: Callable, methods: List[str], blueprint: Optional[Blueprint] = None):
+    def __init__(self, path: str, handler: Callable, methods: List[str], blueprint: Optional[Any] = None):
         self.path: str = path
         self.handler: Callable = handler
         self.methods: List[str] = methods
-        self.blueprint: Optional[Blueprint] = blueprint
-        self.pattern: re.Pattern = re.compile(f'^{path}$')
+        self.blueprint: Optional[Any] = blueprint
+        self.pattern: Pattern = self._compile_path(path)
 
-    def match(self, path: str) -> Optional[Dict[str, Any]]:
+    def _compile_path(self, path: str) -> Pattern:
+        """
+        Compiles the route path into a regular expression pattern.
+
+        :param path: The route path.
+        :type path: str
+        :return: The compiled regular expression pattern.
+        :rtype: Pattern
+        """
+        # Replace path parameters like '{param}' with regex groups
+        pattern = re.sub(r'\{(\w+)\}', r'(?P<\1>[^/]+)', path)
+        # Ensure the pattern matches the entire path
+        pattern = f'^{pattern}$'
+        return re.compile(pattern)
+
+    def match(self, path: str) -> Optional[Dict[str, str]]:
         """
         Check if the provided path matches the route's pattern.
 
         :param path: The URL path to match against the route's pattern.
         :type path: str
         :return: A dictionary of matched parameters if the path matches, otherwise None.
-        :rtype: Optional[Dict[str, Any]]
+        :rtype: Optional[Dict[str, str]]
         """
         match = self.pattern.match(path)
         if match:
@@ -66,7 +78,7 @@ class Router:
         """
         self.routes: List[Route] = []
 
-    def add_route(self, path: str, handler: Callable, methods: Optional[List[str]] = None, blueprint: Optional[Blueprint] = None) -> None:
+    def add_route(self, path: str, handler: Callable, methods: Optional[List[str]] = None, blueprint: Optional[Any] = None) -> None:
         """
         Add a new route to the router.
 
@@ -77,7 +89,7 @@ class Router:
         :param methods: A list of allowed HTTP methods for this route. Defaults to ['GET'].
         :type methods: Optional[List[str]]
         :param blueprint: The blueprint that this route is associated with, if any.
-        :type blueprint: Optional[Blueprint]
+        :type blueprint: Optional[Any]
         """
         methods = methods or ['GET']
         methods = [method.upper() for method in methods]
@@ -109,6 +121,6 @@ class Router:
             params = route.match(path)
             if params is not None:
                 allowed_methods.extend(route.methods)
-                if method in route.methods:
+                if method.upper() in route.methods:
                     return route, params, allowed_methods
         return None, {}, allowed_methods
