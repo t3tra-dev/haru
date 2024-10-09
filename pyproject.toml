@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "haru"
+description = "The Python framework for web applications."
+dynamic = ["version"]
+authors = [{ name = "t3tra", email = "admin@t3ra.net" }]
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { file = "LICENSE" }
+keywords = [
+  "python",
+  "framework",
+  "haru",
+  "web",
+  "fullstack",
+  "frontend",
+  "backend",
+]
+classifiers = [
+  # How mature is this project? Common values are
+  #   3 - Alpha
+  #   4 - Beta
+  #   5 - Production/Stable
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Environment :: Web Environment",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Internet",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Utilities",
+  "Typing :: Typed",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Repository = "https://github.com/t3tra-dev/haru.git"
+Issues = "https://github.com/t3tra-dev/haru/issues"
