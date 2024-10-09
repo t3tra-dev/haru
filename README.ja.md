@@ -3,3 +3,5 @@
 # haru(wip)
 
 Web開発のためのPythonフレームワーク。
+
+https://pypi.org/project/haru/
