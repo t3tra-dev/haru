@@ -5,7 +5,7 @@ It provides functionality to handle routing, middleware management, and request/
 
 import asyncio
 import traceback
-from typing import Callable, Dict, Any, Optional, Awaitable
+from typing import Callable, Dict, Any, Optional, Awaitable, Type, Union
 
 from .router import Router
 from .request import Request
@@ -46,6 +46,7 @@ class Haru:
         self.router: Router = Router()
         self.blueprints: list[Blueprint] = []
         self.middleware: list[Middleware] = []
+        self.error_handlers: Dict[Union[int, Type[Exception]], Callable] = {}  # 新たに追加
         self.asgi: bool = asgi
 
     def route(self, path: str, methods: Optional[list[str]] = None) -> Callable:
@@ -61,6 +62,20 @@ class Haru:
         """
         def decorator(func: Callable) -> Callable:
             self.router.add_route(path, func, methods)
+            return func
+        return decorator
+
+    def errorhandler(self, exception_or_status_code: Union[int, Type[Exception]]) -> Callable:
+        """
+        Register an error handler for a specific exception or HTTP status code.
+
+        :param exception_or_status_code: The exception class or HTTP status code to handle.
+        :type exception_or_status_code: int or Exception class
+        :return: A decorator to wrap the error handler function.
+        :rtype: Callable
+        """
+        def decorator(func: Callable) -> Callable:
+            self.error_handlers[exception_or_status_code] = func
             return func
         return decorator
 
@@ -180,18 +195,15 @@ class Haru:
             content = response.get_content()
             return [content]
 
-        except HTTPException as e:
-            status = f"{e.status_code} {self._http_status_message(e.status_code)}"
-            response_headers = [('Content-Type', 'text/plain; charset=utf-8')]
-            start_response(status, response_headers)
-            return [e.description.encode('utf-8')]
+        except Exception as e:
+            response = self._handle_exception(request, e)
 
-        except Exception:
-            traceback.print_exc()
-            status = '500 Internal Server Error'
-            response_headers = [('Content-Type', 'text/plain; charset=utf-8')]
+            # Send error response
+            status = f"{response.status_code} {self._http_status_message(response.status_code)}"
+            response_headers = list(response.headers.items())
             start_response(status, response_headers)
-            return [b'Internal Server Error']
+            content = response.get_content()
+            return [content]
 
     async def _asgi_app(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[Dict[str, Any]]], send: Callable[[Dict[str, Any]], Awaitable[None]]):
         """
@@ -278,27 +290,18 @@ class Haru:
                 'body': response.get_content(),
             })
 
-        except HTTPException as e:
-            await send({
-                'type': 'http.response.start',
-                'status': e.status_code,
-                'headers': [(b'content-type', b'text/plain; charset=utf-8')],
-            })
-            await send({
-                'type': 'http.response.body',
-                'body': e.description.encode('utf-8'),
-            })
+        except Exception as e:
+            response = await self._handle_exception_async(request, e)
 
-        except Exception:
-            traceback.print_exc()
+            # Send error response
             await send({
                 'type': 'http.response.start',
-                'status': 500,
-                'headers': [(b'content-type', b'text/plain; charset=utf-8')],
+                'status': response.status_code,
+                'headers': [(k.encode('latin1'), v.encode('latin1')) for k, v in response.headers.items()],
             })
             await send({
                 'type': 'http.response.body',
-                'body': b'Internal Server Error',
+                'body': response.get_content(),
             })
 
     def asgi_app(self) -> Callable:
@@ -410,3 +413,91 @@ class Haru:
         """
         from http.server import BaseHTTPRequestHandler
         return BaseHTTPRequestHandler.responses.get(status_code, ('Unknown',))[0]
+
+    def _handle_exception(self, request: Request, exc: Exception) -> Response:
+        """
+        Handles exceptions by invoking the registered error handlers or returning a default error response.
+
+        :param request: The current request object.
+        :type request: Request
+        :param exc: The exception that occurred.
+        :type exc: Exception
+        :return: A Response object representing the error response.
+        :rtype: Response
+        """
+        # Find an error handler
+        handler = None
+        if isinstance(exc, HTTPException):
+            handler = self.error_handlers.get(exc.status_code)
+        for exc_type in self.error_handlers:
+            if isinstance(exc, exc_type):
+                handler = self.error_handlers[exc_type]
+                break
+
+        if handler:
+            result = self._run_middleware_method_sync(handler, request, exc)
+            if not isinstance(result, Response):
+                if isinstance(result, tuple):
+                    content, status_code = result
+                    result = Response(content=content, status_code=status_code)
+                else:
+                    result = Response(result)
+            return result
+        else:
+            # Default error response
+            if isinstance(exc, HTTPException):
+                status_code = exc.status_code
+                description = exc.description
+            else:
+                status_code = 500
+                description = 'Internal Server Error'
+                traceback.print_exc()
+            return Response(
+                content=description,
+                status_code=status_code,
+                content_type='text/plain; charset=utf-8'
+            )
+
+    async def _handle_exception_async(self, request: Request, exc: Exception) -> Response:
+        """
+        Handles exceptions asynchronously by invoking the registered error handlers or returning a default error response.
+
+        :param request: The current request object.
+        :type request: Request
+        :param exc: The exception that occurred.
+        :type exc: Exception
+        :return: A Response object representing the error response.
+        :rtype: Response
+        """
+        # Find an error handler
+        handler = None
+        if isinstance(exc, HTTPException):
+            handler = self.error_handlers.get(exc.status_code)
+        for exc_type in self.error_handlers:
+            if isinstance(exc, exc_type):
+                handler = self.error_handlers[exc_type]
+                break
+
+        if handler:
+            result = await self._maybe_async(handler, request, exc)
+            if not isinstance(result, Response):
+                if isinstance(result, tuple):
+                    content, status_code = result
+                    result = Response(content=content, status_code=status_code)
+                else:
+                    result = Response(result)
+            return result
+        else:
+            # Default error response
+            if isinstance(exc, HTTPException):
+                status_code = exc.status_code
+                description = exc.description
+            else:
+                status_code = 500
+                description = 'Internal Server Error'
+                traceback.print_exc()
+            return Response(
+                content=description,
+                status_code=status_code,
+                content_type='text/plain; charset=utf-8'
+            )
