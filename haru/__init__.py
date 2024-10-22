@@ -22,14 +22,14 @@ from typing import NamedTuple, Literal
 
 __all__ = [
     'exceptions', 'middlewares', 'ui', 'webapi', 'Haru', 'Blueprint', 'Request',
-    'FileWrapper', 'BytesWrapper', 'AsyncFileWrapper', 'AsyncBytesWrapper', 'Response', 'redirect'
+    'FileWrapper', 'BytesWrapper', 'AsyncFileWrapper', 'AsyncBytesWrapper', 'Response', 'redirect', 'upgrade_websocket'
 ]
 
 from . import exceptions
 from . import middlewares
 from . import ui
 from . import webapi
-from .app import Haru
+from .app import Haru, upgrade_websocket
 from .request import Request
 from .response import Response, redirect
 from .blueprint import Blueprint
