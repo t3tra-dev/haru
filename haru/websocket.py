@@ -7,16 +7,20 @@ import asyncio
 import threading
 import logging
 
-__all__ = ['upgrade_websocket']
+__all__ = ['WebSocketServerProtocol', 'WebSocketServer', 'upgrade_websocket']
 
 logger = logging.getLogger(__name__)
 
 try:
     import websockets
-    from websockets.server import WebSocketServerProtocol
+    from websockets.server import WebSocketServerProtocol as _WebSocketServerProtocol
 except ImportError:
     websockets = None
-    WebSocketServerProtocol = None
+    _WebSocketServerProtocol = None
+
+
+class WebSocketServerProtocol(_WebSocketServerProtocol):
+    pass
 
 
 def upgrade_websocket(func: Callable[[Any], Awaitable[None]]) -> Callable:

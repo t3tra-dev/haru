@@ -17,9 +17,9 @@ from .exceptions import (
 )
 from .blueprint import Blueprint
 from .middleware import Middleware
-from .websocket import WebSocketServer, upgrade_websocket
+from .websocket import WebSocketServer
 
-__all__ = ['Haru', 'upgrade_websocket']
+__all__ = ['Haru']
 
 
 class Haru:
