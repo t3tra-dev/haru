@@ -5,7 +5,7 @@ It provides functionality to handle routing, middleware management, and request/
 
 import asyncio
 import traceback
-from typing import Callable, Dict, Any, Optional, Awaitable, Type, Union
+from typing import Callable, Dict, List, Any, Optional, Awaitable, Type, Union
 
 from .router import Router
 from .request import Request
@@ -17,7 +17,13 @@ from .exceptions import (
 )
 from .blueprint import Blueprint
 from .middleware import Middleware
-from .websocket import WebSocketServer
+try:
+    from .websocket import WebSocketServer, upgrade_websocket
+    websockets_available = True
+except ImportError:
+    WebSocketServer = None  # type: ignore
+    upgrade_websocket = None  # type: ignore
+    websockets_available = False
 
 __all__ = ['Haru']
 
@@ -26,7 +32,8 @@ class Haru:
     """
     The main application class of the Haru web framework. This class is responsible for
     managing routes, handling HTTP requests, and middleware processing. It supports both
-    ASGI and WSGI interfaces, allowing flexible deployment options.
+    ASGI and WSGI interfaces, allowing flexible deployment options. It also integrates
+    WebSocket support when running in WSGI mode by starting a separate WebSocket server.
 
     :param import_name: The name of the module or package that this application instance is associated with.
     :type import_name: str
@@ -45,27 +52,32 @@ class Haru:
         """
         self.import_name: str = import_name
         self.router: Router = Router()
-        self.blueprints: list[Blueprint] = []
-        self.middleware: list[Middleware] = []
-        self.error_handlers: Dict[Union[int, Type[Exception]], Callable] = {}  # 新たに追加
+        self.blueprints: List[Blueprint] = []
+        self.middleware: List[Middleware] = []
+        self.error_handlers: Dict[Union[int, Type[Exception]], Callable] = {}
         self.asgi: bool = asgi
-        self.websocket_server = None
+        self.websocket_server: Optional[WebSocketServer] = None  # type: ignore
         self.websocket_routes: Dict[str, Callable] = {}
 
-    def route(self, path: str, methods: Optional[list[str]] = None) -> Callable:
+    def route(self, path: str, methods: Optional[List[str]] = None) -> Callable:
         """
         Define a new route in the application.
 
         :param path: The URL path to bind the route.
         :type path: str
         :param methods: A list of HTTP methods allowed for this route (GET, POST, etc.).
-        :type methods: List[str], optional
+        :type methods: Optional[List[str]]
         :return: A decorator to wrap the route handler function.
         :rtype: Callable
         """
         def decorator(func: Callable) -> Callable:
             if getattr(func, 'is_websocket', False):
-                self.router.add_route(path, func, methods=['GET'])
+                # Register WebSocket route
+                if not websockets_available:
+                    raise ImportError(
+                        "The 'websockets' library is required for WebSocket support. Install with 'pip install haru[ws]'"
+                    )
+                self.websocket_routes[path] = func
             else:
                 self.router.add_route(path, func, methods)
             return func
@@ -76,7 +88,7 @@ class Haru:
         Register an error handler for a specific exception or HTTP status code.
 
         :param exception_or_status_code: The exception class or HTTP status code to handle.
-        :type exception_or_status_code: int or Exception class
+        :type exception_or_status_code: Union[int, Type[Exception]]
         :return: A decorator to wrap the error handler function.
         :rtype: Callable
         """
@@ -114,27 +126,41 @@ class Haru:
         if middleware in self.middleware:
             self.middleware.remove(middleware)
 
-    def run(self, host: str = '127.0.0.1', port: int = 8000, ws_port: int = None) -> None:
+    def run(self, host: str = '127.0.0.1', port: int = 8000, ws_host: Optional[str] = None, ws_port: Optional[int] = None) -> None:
         """
-        Start the HTTP server and run the application.
+        Start the HTTP server and run the application. If WebSocket routes are registered,
+        start a separate WebSocket server in a different thread.
 
-        :param host: The host address to bind the server to (default is 127.0.0.1).
+        :param host: The host address to bind the HTTP server to.
         :type host: str
-        :param port: The port number to bind the server to (default is 8000).
+        :param port: The port number to bind the HTTP server to.
         :type port: int
+        :param ws_host: The host address to bind the WebSocket server to (default is same as HTTP host).
+        :type ws_host: Optional[str]
+        :param ws_port: The port number to bind the WebSocket server to (default is HTTP port + 1).
+        :type ws_port: Optional[int]
+        :raises RuntimeError: If ASGI mode is enabled.
         """
         if self.asgi:
             raise RuntimeError("ASGI mode is enabled. Use an ASGI server to run the app.")
+
         if self.websocket_routes:
             # Start WebSocket server
+            if not websockets_available:
+                raise ImportError(
+                    "The 'websockets' library is required for WebSocket support. Install with 'pip install haru[ws]'"
+                )
+            ws_host = ws_host or host
             ws_port = ws_port or (port + 1)
-            self.websocket_server = WebSocketServer(host, ws_port)
+            self.websocket_server = WebSocketServer(ws_host, ws_port)
             for path, handler in self.websocket_routes.items():
                 self.websocket_server.add_route(path, handler)
             self.websocket_server.start()
-            print(f"WebSocket server is running on ws://{host}:{ws_port}")
+            print(f"WebSocket server is running on ws://{ws_host}:{ws_port}")
+
+        # Start HTTP server
         from wsgiref.simple_server import make_server
-        print(f"Serving on http://{host}:{port}")
+        print(f"Serving HTTP on http://{host}:{port}")
         with make_server(host, port, self.wsgi_app) as httpd:
             try:
                 httpd.serve_forever()
@@ -142,18 +168,20 @@ class Haru:
                 print("Server is shutting down.")
                 httpd.server_close()
 
-    def wsgi_app(self, environ: Dict[str, Any], start_response: Callable) -> list:
+    def wsgi_app(self, environ: Dict[str, Any], start_response: Callable) -> List[bytes]:
         """
         WSGI application callable.
 
         This method handles WSGI requests and sends responses synchronously.
+        It ignores WebSocket routes to prevent errors when a client attempts to
+        access them via HTTP.
 
         :param environ: The WSGI environment dictionary.
         :type environ: Dict[str, Any]
         :param start_response: The WSGI start_response callable.
         :type start_response: Callable
         :return: The response body as a list of bytes.
-        :rtype: list
+        :rtype: List[bytes]
         """
         try:
             # Read the request body
@@ -162,9 +190,20 @@ class Haru:
 
             method = environ['REQUEST_METHOD']
             path = environ['PATH_INFO']
-            headers = {key[5:].replace('_', '-').lower(): value for key, value in environ.items() if key.startswith('HTTP_')}
+            headers = {
+                key[5:].replace('_', '-').lower(): value
+                for key, value in environ.items() if key.startswith('HTTP_')
+            }
             client_address = environ.get('REMOTE_ADDR', '')
             request = Request(method=method, path=path, headers=headers, body=body, client_address=client_address)
+
+            # Check if the path is a WebSocket route
+            if path in self.websocket_routes:
+                # Return a 400 Bad Request response
+                status = '400 Bad Request'
+                response_headers = [('Content-Type', 'text/plain; charset=utf-8')]
+                start_response(status, response_headers)
+                return [b'WebSocket route cannot be accessed via HTTP.']
 
             # Process the request and match the route
             route, params, allowed_methods = self.router.match(request.path, request.method)
