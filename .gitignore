@@ -1,4 +1,5 @@
 # temp
+.vscode/
 tests/
 run.sh
 build.sh
