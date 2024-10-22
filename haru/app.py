@@ -8,7 +8,6 @@ import traceback
 from typing import Callable, Dict, Any, Optional, Awaitable
 
 from .router import Router
-from .ctx import request_context
 from .request import Request
 from .response import Response
 from .exceptions import (
@@ -94,20 +93,6 @@ class Haru:
         if middleware in self.middleware:
             self.middleware.remove(middleware)
 
-    def get_middleware(self, middleware_class: type) -> Optional[Middleware]:
-        """
-        Retrieve a middleware instance by its class.
-
-        :param middleware_class: The class of the middleware to retrieve.
-        :type middleware_class: Type[Middleware]
-        :return: The middleware instance, or None if not found.
-        :rtype: Optional[Middleware]
-        """
-        for mw in self.middleware:
-            if isinstance(mw, middleware_class):
-                return mw
-        return None
-
     def run(self, host: str = '127.0.0.1', port: int = 8000) -> None:
         """
         Start the HTTP server and run the application.
@@ -151,7 +136,6 @@ class Haru:
             headers = {key[5:].replace('_', '-').lower(): value for key, value in environ.items() if key.startswith('HTTP_')}
             client_address = environ.get('REMOTE_ADDR', '')
             request = Request(method=method, path=path, headers=headers, body=body, client_address=client_address)
-            token = request_context.set(request)
 
             # Process the request and match the route
             route, params, allowed_methods = self.router.match(request.path, request.method)
@@ -170,24 +154,24 @@ class Haru:
                 else:
                     raise NotFound("Not Found")
 
-            # Call the route handler
-            response = self._call_route_handler_sync(route.handler, request, **params)
-
             # Middleware processing
             middlewares = self.middleware.copy()
             if route.blueprint:
                 middlewares.extend(route.blueprint.middleware)
 
             for mw in middlewares:
-                mw.before_request(request)
+                self._run_middleware_method_sync(mw.before_request, request)
+
+            # Call the route handler and pass the request object
+            response = self._call_route_handler_sync(route.handler, request, **params)
 
             for mw in reversed(middlewares):
-                result = mw.after_request(request, response)
+                result = self._run_middleware_method_sync(mw.after_request, request, response)
                 if result is not None:
                     response = result
 
             for mw in middlewares:
-                mw.before_response(request, response)
+                self._run_middleware_method_sync(mw.before_response, request, response)
 
             # Send response
             status = f"{response.status_code} {self._http_status_message(response.status_code)}"
@@ -208,9 +192,6 @@ class Haru:
             response_headers = [('Content-Type', 'text/plain; charset=utf-8')]
             start_response(status, response_headers)
             return [b'Internal Server Error']
-
-        finally:
-            request_context.reset(token)
 
     async def _asgi_app(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[Dict[str, Any]]], send: Callable[[Dict[str, Any]], Awaitable[None]]):
         """
@@ -243,7 +224,6 @@ class Haru:
             client = scope.get('client')
             client_address = client[0] if client else ''
             request = Request(method=method, path=path, headers=headers, body=body, client_address=client_address)
-            token = request_context.set(request)
 
             # Process the request and match the route
             route, params, allowed_methods = self.router.match(request.path, request.method)
@@ -268,9 +248,6 @@ class Haru:
                 else:
                     raise NotFound("Not Found")
 
-            # Call the route handler
-            response = await self._call_route_handler(route.handler, request, **params)
-
             # Middleware processing
             middlewares = self.middleware.copy()
             if route.blueprint:
@@ -278,6 +255,9 @@ class Haru:
 
             for mw in middlewares:
                 await self._maybe_async(mw.before_request, request)
+
+            # Call the route handler and pass the request object
+            response = await self._call_route_handler(route.handler, request, **params)
 
             for mw in reversed(middlewares):
                 result = await self._maybe_async(mw.after_request, request, response)
@@ -320,9 +300,6 @@ class Haru:
                 'type': 'http.response.body',
                 'body': b'Internal Server Error',
             })
-
-        finally:
-            request_context.reset(token)
 
     def asgi_app(self) -> Callable:
         """
@@ -400,6 +377,27 @@ class Haru:
             return await func(*args, **kwargs)
         else:
             return func(*args, **kwargs)
+
+    def _run_middleware_method_sync(self, method: Callable, *args, **kwargs):
+        """
+        Helper method to run middleware methods synchronously, supporting both sync and async methods.
+
+        :param method: The middleware method to call.
+        :type method: Callable
+        :param args: Positional arguments.
+        :param kwargs: Keyword arguments.
+        :return: The result of the middleware method.
+        """
+        if asyncio.iscoroutinefunction(method):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(method(*args, **kwargs))
+            finally:
+                loop.close()
+        else:
+            result = method(*args, **kwargs)
+        return result
 
     def _http_status_message(self, status_code: int) -> str:
         """

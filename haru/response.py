@@ -10,26 +10,13 @@ import os
 import json
 from .wrappers import FileWrapper, BytesWrapper
 
-__all__ = ['Response']
+__all__ = ['Response', 'redirect']
 
 
 class Response:
     """
     Represents an HTTP response. This class encapsulates the content, status code, headers,
     and other attributes of an HTTP response that will be sent back to the client.
-
-    :param content: The content of the response, which can be a string, bytes, or a file-like object.
-    :type content: Any
-    :param status_code: The HTTP status code for the response (default is 200).
-    :type status_code: int
-    :param headers: A dictionary of additional headers for the response.
-    :type headers: Optional[Dict[str, str]]
-    :param content_type: The MIME type of the response content. If not provided, it is inferred based on the content.
-    :type content_type: Optional[str]
-    :param filename: The filename for file downloads. If provided, sets the Content-Disposition header for downloads.
-    :type filename: Optional[str]
-    :param as_attachment: A boolean indicating whether the response should be treated as a file attachment.
-    :type as_attachment: bool
     """
 
     def __init__(
@@ -117,3 +104,21 @@ class Response:
             return json.dumps(self.content).encode('utf-8')
         else:
             return str(self.content).encode('utf-8')
+
+
+def redirect(location: str, status_code: int = 302) -> Response:
+    """
+    Returns a Response object that redirects the client to the specified location.
+
+    :param location: The URL to redirect to.
+    :type location: str
+    :param status_code: The HTTP status code for the redirect (default is 302).
+    :type status_code: int
+    :return: A Response object configured to redirect the client.
+    :rtype: Response
+    """
+    return Response(
+        content='',
+        status_code=status_code,
+        headers={'Location': location}
+    )

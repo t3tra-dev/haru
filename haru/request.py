@@ -1,19 +1,12 @@
 """
 This module defines classes for handling HTTP requests in the Haru web framework.
-It includes the `Request` class, which encapsulates details about an incoming HTTP request,
-and the `RequestProxy` class, which acts as a proxy to access the current request data
-via the request context.
-
-The `request` object is an instance of `RequestProxy` and provides easy access
-to the current request in the application.
+It includes the `Request` class, which encapsulates details about an incoming HTTP request.
 """
 
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 
-from .ctx import request_context
-
-__all__ = ['Request', 'RequestProxy', 'request']
+__all__ = ['Request']
 
 
 class Request:
@@ -116,46 +109,3 @@ class Request:
         :rtype: bytes
         """
         return self.body
-
-
-class RequestProxy:
-    """
-    A proxy object that provides access to the current request in the context of an HTTP request.
-    The `RequestProxy` retrieves the current request from the request context, allowing global access
-    to the request properties without passing the request object explicitly.
-
-    The attributes of `RequestProxy` correspond to those of the `Request` object.
-    """
-    request_context = request_context
-
-    method: str
-    path: str
-    headers: Dict[str, str]
-    body: bytes
-    remote_addr: str
-    user_agent: str
-    host: str
-    cookies: Dict[str, str]
-    query_string: str
-    args: Dict[str, str]
-    form: Dict[str, Any]
-    json: Optional[Dict[str, Any]]
-    files: Dict[str, Any]
-
-    def __getattribute__(self, name: str) -> Any:
-        """
-        Overrides attribute access to dynamically fetch the current request's attribute
-        from the request context.
-
-        :param name: The name of the attribute to retrieve.
-        :type name: str
-        :return: The value of the attribute from the current request.
-        :rtype: Any
-        """
-        if name in ('__class__', '__dict__', '__doc__', '__module__', '__weakref__', 'request_context'):
-            return object.__getattribute__(self, name)
-        req = self.request_context.get()
-        return getattr(req, name)
-
-
-request = RequestProxy()
