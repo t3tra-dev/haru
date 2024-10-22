@@ -17,8 +17,9 @@ from .exceptions import (
 )
 from .blueprint import Blueprint
 from .middleware import Middleware
+from .websocket import WebSocketServer, upgrade_websocket
 
-__all__ = ['Haru']
+__all__ = ['Haru', 'upgrade_websocket']
 
 
 class Haru:
@@ -48,6 +49,8 @@ class Haru:
         self.middleware: list[Middleware] = []
         self.error_handlers: Dict[Union[int, Type[Exception]], Callable] = {}  # 新たに追加
         self.asgi: bool = asgi
+        self.websocket_server = None
+        self.websocket_routes: Dict[str, Callable] = {}
 
     def route(self, path: str, methods: Optional[list[str]] = None) -> Callable:
         """
@@ -61,7 +64,10 @@ class Haru:
         :rtype: Callable
         """
         def decorator(func: Callable) -> Callable:
-            self.router.add_route(path, func, methods)
+            if getattr(func, 'is_websocket', False):
+                self.router.add_route(path, func, methods=['GET'])
+            else:
+                self.router.add_route(path, func, methods)
             return func
         return decorator
 
@@ -108,7 +114,7 @@ class Haru:
         if middleware in self.middleware:
             self.middleware.remove(middleware)
 
-    def run(self, host: str = '127.0.0.1', port: int = 8000) -> None:
+    def run(self, host: str = '127.0.0.1', port: int = 8000, ws_port: int = None) -> None:
         """
         Start the HTTP server and run the application.
 
@@ -119,6 +125,14 @@ class Haru:
         """
         if self.asgi:
             raise RuntimeError("ASGI mode is enabled. Use an ASGI server to run the app.")
+        if self.websocket_routes:
+            # Start WebSocket server
+            ws_port = ws_port or (port + 1)
+            self.websocket_server = WebSocketServer(host, ws_port)
+            for path, handler in self.websocket_routes.items():
+                self.websocket_server.add_route(path, handler)
+            self.websocket_server.start()
+            print(f"WebSocket server is running on ws://{host}:{ws_port}")
         from wsgiref.simple_server import make_server
         print(f"Serving on http://{host}:{port}")
         with make_server(host, port, self.wsgi_app) as httpd:
@@ -218,91 +232,114 @@ class Haru:
         :param send: The send callable to send the response messages.
         :type send: Callable
         """
-        if scope['type'] != 'http':
-            return  # Only handle HTTP requests
+        if scope['type'] == 'http':
+            # 既存のHTTP処理
+            try:
+                # Read the request body
+                body = b""
+                more_body = True
+                while more_body:
+                    message = await receive()
+                    body += message.get('body', b'')
+                    more_body = message.get('more_body', False)
 
-        try:
-            # Read the request body
-            body = b""
-            more_body = True
-            while more_body:
-                message = await receive()
-                body += message.get('body', b'')
-                more_body = message.get('more_body', False)
+                method = scope.get('method', 'GET')
+                path = scope.get('path', '/')
+                headers = {k.decode('latin1'): v.decode('latin1') for k, v in scope.get('headers', [])}
+                client = scope.get('client')
+                client_address = client[0] if client else ''
+                request = Request(method=method, path=path, headers=headers, body=body, client_address=client_address)
 
-            method = scope.get('method', 'GET')
+                # Process the request and match the route
+                route, params, allowed_methods = self.router.match(request.path, request.method)
+                if route is None:
+                    if method == 'OPTIONS':
+                        allowed_methods = set(allowed_methods)
+                        if allowed_methods:
+                            await send({
+                                'type': 'http.response.start',
+                                'status': 200,
+                                'headers': [(b'allow', ', '.join(sorted(allowed_methods)).encode('latin1'))],
+                            })
+                            await send({
+                                'type': 'http.response.body',
+                                'body': b'',
+                            })
+                            return
+                        else:
+                            raise NotFound("Not Found")
+                    elif allowed_methods:
+                        raise MethodNotAllowed(allowed_methods)
+                    else:
+                        raise NotFound("Not Found")
+
+                # Middleware processing
+                middlewares = self.middleware.copy()
+                if route.blueprint:
+                    middlewares.extend(route.blueprint.middleware)
+
+                for mw in middlewares:
+                    await self._maybe_async(mw.before_request, request)
+
+                # Call the route handler and pass the request object
+                response = await self._call_route_handler(route.handler, request, **params)
+
+                for mw in reversed(middlewares):
+                    result = await self._maybe_async(mw.after_request, request, response)
+                    if result is not None:
+                        response = result
+
+                for mw in middlewares:
+                    await self._maybe_async(mw.before_response, request, response)
+
+                await send({
+                    'type': 'http.response.start',
+                    'status': response.status_code,
+                    'headers': [(k.encode('latin1'), v.encode('latin1')) for k, v in response.headers.items()],
+                })
+                await send({
+                    'type': 'http.response.body',
+                    'body': response.get_content(),
+                })
+
+            except Exception as e:
+                response = await self._handle_exception_async(request, e)
+
+                await send({
+                    'type': 'http.response.start',
+                    'status': response.status_code,
+                    'headers': [(k.encode('latin1'), v.encode('latin1')) for k, v in response.headers.items()],
+                })
+                await send({
+                    'type': 'http.response.body',
+                    'body': response.get_content(),
+                })
+
+        elif scope['type'] == 'websocket':
             path = scope.get('path', '/')
             headers = {k.decode('latin1'): v.decode('latin1') for k, v in scope.get('headers', [])}
             client = scope.get('client')
             client_address = client[0] if client else ''
-            request = Request(method=method, path=path, headers=headers, body=body, client_address=client_address)
+            request = Request(method='GET', path=path, headers=headers, body=b'', client_address=client_address)
 
-            # Process the request and match the route
-            route, params, allowed_methods = self.router.match(request.path, request.method)
-            if route is None:
-                if method == 'OPTIONS':
-                    allowed_methods = set(allowed_methods)
-                    if allowed_methods:
-                        await send({
-                            'type': 'http.response.start',
-                            'status': 200,
-                            'headers': [(b'allow', ', '.join(sorted(allowed_methods)).encode('latin1'))],
-                        })
-                        await send({
-                            'type': 'http.response.body',
-                            'body': b'',
-                        })
-                        return
-                    else:
-                        raise NotFound("Not Found")
-                elif allowed_methods:
-                    raise MethodNotAllowed(allowed_methods)
-                else:
-                    raise NotFound("Not Found")
+            route, params, _ = self.router.match(request.path, 'GET')
+            if route is None or not getattr(route.handler, 'is_websocket', False):
+                await send({
+                    'type': 'websocket.close',
+                    'code': 1000,
+                })
+                return
 
-            # Middleware processing
-            middlewares = self.middleware.copy()
-            if route.blueprint:
-                middlewares.extend(route.blueprint.middleware)
+            await send({'type': 'websocket.accept'})
 
-            for mw in middlewares:
-                await self._maybe_async(mw.before_request, request)
+            try:
+                await route.handler(scope, receive, send, **params)
+            except Exception:
+                traceback.print_exc()
+                await send({'type': 'websocket.close', 'code': 1011})
 
-            # Call the route handler and pass the request object
-            response = await self._call_route_handler(route.handler, request, **params)
-
-            for mw in reversed(middlewares):
-                result = await self._maybe_async(mw.after_request, request, response)
-                if result is not None:
-                    response = result
-
-            for mw in middlewares:
-                await self._maybe_async(mw.before_response, request, response)
-
-            # Send response
-            await send({
-                'type': 'http.response.start',
-                'status': response.status_code,
-                'headers': [(k.encode('latin1'), v.encode('latin1')) for k, v in response.headers.items()],
-            })
-            await send({
-                'type': 'http.response.body',
-                'body': response.get_content(),
-            })
-
-        except Exception as e:
-            response = await self._handle_exception_async(request, e)
-
-            # Send error response
-            await send({
-                'type': 'http.response.start',
-                'status': response.status_code,
-                'headers': [(k.encode('latin1'), v.encode('latin1')) for k, v in response.headers.items()],
-            })
-            await send({
-                'type': 'http.response.body',
-                'body': response.get_content(),
-            })
+        else:
+            pass
 
     def asgi_app(self) -> Callable:
         """

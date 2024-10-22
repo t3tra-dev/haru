@@ -50,3 +50,6 @@ requires-python = ">=3.8"
 [project.urls]
 Repository = "https://github.com/t3tra-dev/haru.git"
 Issues = "https://github.com/t3tra-dev/haru/issues"
+
+[project.optional-dependencies]
+ws = ["websockets>=10.0"]
