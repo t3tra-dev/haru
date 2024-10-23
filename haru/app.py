@@ -5,7 +5,7 @@ It provides functionality to handle routing, middleware management, and request/
 
 import asyncio
 import traceback
-from typing import Callable, Dict, List, Any, Optional, Awaitable, Type, Union
+from typing import Callable, Dict, List, Any, Optional, Awaitable, Type, TypeVar, Union
 
 from .router import Router
 from .request import Request
@@ -26,6 +26,8 @@ except ImportError:
     websockets_available = False
 
 __all__ = ['Haru']
+
+T = TypeVar('T')
 
 
 class Haru:
@@ -457,7 +459,7 @@ class Haru:
         else:
             return func(*args, **kwargs)
 
-    def _run_middleware_method_sync(self, method: Callable, *args, **kwargs):
+    def _run_middleware_method_sync(self, method: Callable[..., Awaitable[T] | T], *args, **kwargs) -> T:
         """
         Helper method to run middleware methods synchronously, supporting both sync and async methods.
 
