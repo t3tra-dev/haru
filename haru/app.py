@@ -4,7 +4,6 @@ It provides functionality to handle routing, middleware management, and request/
 """
 
 import asyncio
-import traceback
 from typing import Callable, Dict, List, Any, Optional, Awaitable, Type, TypeVar, Union
 
 from .router import Router
@@ -375,9 +374,9 @@ class Haru:
 
             try:
                 await route.handler(scope, receive, send, **params)
-            except Exception:
-                traceback.print_exc()
+            except Exception as e:
                 await send({'type': 'websocket.close', 'code': 1011})
+                raise e
 
         else:
             pass
@@ -529,7 +528,7 @@ class Haru:
             else:
                 status_code = 500
                 description = 'Internal Server Error'
-                traceback.print_exc()
+                raise exc
             return Response(
                 content=description,
                 status_code=status_code,
@@ -573,7 +572,7 @@ class Haru:
             else:
                 status_code = 500
                 description = 'Internal Server Error'
-                traceback.print_exc()
+                raise exc
             return Response(
                 content=description,
                 status_code=status_code,

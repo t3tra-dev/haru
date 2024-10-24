@@ -22,13 +22,12 @@ logger = logging.getLogger(__name__)
 try:
     import websockets
     from websockets.server import WebSocketServerProtocol as _WebSocketServerProtocol
+
+    class WebSocketServerProtocol(_WebSocketServerProtocol):
+        pass
 except ImportError:
     websockets = None
-    _WebSocketServerProtocol = None
-
-
-class WebSocketServerProtocol(_WebSocketServerProtocol):
-    pass
+    WebSocketServerProtocol = None
 
 
 def upgrade_websocket(func: Callable[[WebSocketServerProtocol], Awaitable[None]]) -> Callable:
