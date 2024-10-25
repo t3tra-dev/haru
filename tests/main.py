@@ -6,7 +6,7 @@ from haru.sql import Model, Column, Integer, String, SessionManager, Base, get_s
 class User(Model):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(length=50), nullable=False)
     password = Column(String(length=100), nullable=False)
 
@@ -31,9 +31,12 @@ def user(req: Request):
         return f'Hello, {req.params["username"]}!'
     else:
         with SessionManager(session) as s:
-            new_user = User(name=req.form["username"], email=req.form["password"])
+            if 'password' not in req.form:
+                return 'Password is required.', 400
+            new_user = User(name=req.params["username"], password=req.form["password"])
             s.add(new_user)
             return f'User: {new_user.name} created successfully!'
 
 
-app.run()
+if __name__ == '__main__':
+    app.run()

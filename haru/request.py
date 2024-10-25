@@ -38,7 +38,7 @@ class Request:
         self.query_string: str = self._parse_query_string()
         self.args: Dict[str, str] = self._parse_query_params()
         self.params: Dict[str, Any] = {}
-        self.form: Dict[str, Any] = {}
+        self.form: Dict[str, Any] = self._parse_form_data()
         self.json: Optional[Dict[str, Any]] = self._parse_json()
         self.files: Dict[str, Any] = {}
 
@@ -77,6 +77,20 @@ class Request:
         """
         query_string = self.query_string
         return {k: v[0] for k, v in parse_qs(query_string).items()}
+
+    def _parse_form_data(self) -> Dict[str, Any]:
+        """
+        Parse form data from the request body if Content-Type is 'application/x-www-form-urlencoded'.
+
+        :return: A dictionary of form data.
+        :rtype: Dict[str, Any]
+        """
+        content_type = self.headers.get('content-type', '')
+        if 'application/x-www-form-urlencoded' in content_type:
+            body_str = self.body.decode('utf-8')
+            return {k: v[0] for k, v in parse_qs(body_str).items()}
+        else:
+            return {}
 
     def _parse_json(self) -> Optional[Dict[str, Any]]:
         """
