@@ -31,8 +31,8 @@ class Route:
         self.handler: Callable = handler
         self.methods: List[str] = methods
         self.blueprint: Optional[Any] = blueprint
+        self.param_types: Dict[str, str] = {}
         self.pattern: Pattern = self._compile_path(path)
-        self.param_types: Dict[str, str] = {}  # Store parameter types
 
     def _compile_path(self, path: str) -> Pattern:
         """
