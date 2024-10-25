@@ -54,6 +54,7 @@ __all__ = [
     'LoopDetected',
     'NotExtended',
     'NetworkAuthenticationRequired',
+    'StaticRouteOverlapError',
 ]
 
 
@@ -368,3 +369,14 @@ class NetworkAuthenticationRequired(HTTPException):
 
     def __init__(self, description: Optional[str] = None, headers: Optional[Dict[str, str]] = None):
         super().__init__(HTTPStatus.NETWORK_AUTHENTICATION_REQUIRED, description)
+
+
+class StaticRouteOverlapError(HaruException):
+    """Exception raised when static route paths overlap.
+
+    :param message: Error message.
+    :type message: str
+    """
+
+    def __init__(self, message: str):
+        super().__init__(message)
