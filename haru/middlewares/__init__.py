@@ -9,6 +9,7 @@ __all__ = [
     'IPRestrictionMiddleware',
     'JWTAuthMiddleware',
     'LoggerMiddleware',
+    'SecureHeadersMiddleware', 'SecureHeadersOptions',
 ]
 
 from .basic_auth import BasicAuthMiddleware
@@ -21,3 +22,4 @@ from .csrf_protection import CSRFProtectionMiddleware
 from .ip_restriction import IPRestrictionMiddleware
 from .jwt_auth import JWTAuthMiddleware
 from .logger import LoggerMiddleware
+from .secure_headers import SecureHeadersMiddleware, SecureHeadersOptions
