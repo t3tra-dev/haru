@@ -5,10 +5,8 @@ and other properties that are sent back to the client after processing an HTTP r
 """
 
 from typing import Any, Dict, Optional
-import mimetypes
 import os
 import json
-from .wrappers import FileWrapper, BytesWrapper
 
 __all__ = ['Response', 'redirect']
 
@@ -49,8 +47,6 @@ class Response:
         if self.as_attachment:
             if self.filename:
                 attachment_filename = os.path.basename(self.filename)
-            elif isinstance(content, FileWrapper):
-                attachment_filename = os.path.basename(content.filepath)
             else:
                 attachment_filename = 'download'
             self.headers['Content-Disposition'] = f'attachment; filename="{attachment_filename}"'
@@ -68,10 +64,6 @@ class Response:
             return 'application/octet-stream'
         elif isinstance(self.content, (dict, list)):
             return 'application/json'
-        elif isinstance(self.content, FileWrapper):
-            return mimetypes.guess_type(self.content.filepath)[0] or 'application/octet-stream'
-        elif isinstance(self.content, BytesWrapper):
-            return 'application/octet-stream'
         else:
             return 'application/octet-stream'
 
@@ -86,8 +78,6 @@ class Response:
         """
         if isinstance(self.content, (bytes, str)):
             yield self.get_content()
-        elif isinstance(self.content, (FileWrapper, BytesWrapper)):
-            yield from self.content
         else:
             raise TypeError("Unsupported content type for response")
 
