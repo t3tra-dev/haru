@@ -16,7 +16,7 @@ class Route:
     Represents a single route in the application, which binds a URL path to a handler function
     and allows specific HTTP methods.
 
-    :param path: The URL path pattern for this route. Supports parameterized paths like '/users/{id}'.
+    :param path: The URL path pattern for this route. Supports parameterized paths like '/users/<username:str>'.
     :type path: str
     :param handler: The function that handles requests matching this route.
     :type handler: Callable
@@ -32,6 +32,7 @@ class Route:
         self.methods: List[str] = methods
         self.blueprint: Optional[Any] = blueprint
         self.pattern: Pattern = self._compile_path(path)
+        self.param_types: Dict[str, str] = {}  # Store parameter types
 
     def _compile_path(self, path: str) -> Pattern:
         """
@@ -42,25 +43,80 @@ class Route:
         :return: The compiled regular expression pattern.
         :rtype: Pattern
         """
-        # Replace path parameters like '{param}' with regex groups
-        pattern = re.sub(r'\{(\w+)\}', r'(?P<\1>[^/]+)', path)
-        # Ensure the pattern matches the entire path
-        pattern = f'^{pattern}$'
+        # Replace path parameters like '<name:type>' with regex groups
+        param_regex = re.compile(r'<(\w+)(?::(\w+))?>')
+        pattern = '^'
+        last_pos = 0
+
+        for match in param_regex.finditer(path):
+            start, end = match.span()
+            param_name, param_type = match.groups()
+            param_type = param_type or 'str'  # Default type is 'str'
+            self.param_types[param_name] = param_type
+
+            # Add the text before the parameter
+            pattern += re.escape(path[last_pos:start])
+
+            # Add the parameter pattern
+            if param_type == 'str':
+                regex = f'(?P<{param_name}>[^/]+)'
+            elif param_type == 'int':
+                regex = f'(?P<{param_name}>\\d+)'
+            elif param_type == 'float':
+                regex = f'(?P<{param_name}>\\d+\\.\\d+)'
+            elif param_type == 'path':
+                regex = f'(?P<{param_name}>.+)'
+            else:
+                raise ValueError(f"Unsupported parameter type: {param_type}")
+
+            pattern += regex
+            last_pos = end
+
+        # Add the remaining text after the last parameter
+        pattern += re.escape(path[last_pos:])
+        pattern += '$'
         return re.compile(pattern)
 
-    def match(self, path: str) -> Optional[Dict[str, str]]:
+    def match(self, path: str) -> Optional[Dict[str, Any]]:
         """
         Check if the provided path matches the route's pattern.
 
         :param path: The URL path to match against the route's pattern.
         :type path: str
         :return: A dictionary of matched parameters if the path matches, otherwise None.
-        :rtype: Optional[Dict[str, str]]
+        :rtype: Optional[Dict[str, Any]]
         """
         match = self.pattern.match(path)
         if match:
-            return match.groupdict()
+            params = match.groupdict()
+            # Convert params to their specified types
+            for name, value in params.items():
+                param_type = self.param_types.get(name, 'str')
+                params[name] = self._convert_param(value, param_type)
+            return params
         return None
+
+    def _convert_param(self, value: str, param_type: str) -> Any:
+        """
+        Convert the parameter value to the specified type.
+
+        :param value: The parameter value as a string.
+        :type value: str
+        :param param_type: The type to convert to.
+        :type param_type: str
+        :return: The converted value.
+        :rtype: Any
+        """
+        if param_type == 'str':
+            return value
+        elif param_type == 'int':
+            return int(value)
+        elif param_type == 'float':
+            return float(value)
+        elif param_type == 'path':
+            return value  # 'path' type remains as string
+        else:
+            return value  # Unknown type, return as string
 
 
 class Router:
@@ -122,5 +178,5 @@ class Router:
             if params is not None:
                 allowed_methods.extend(route.methods)
                 if method.upper() in route.methods:
-                    return route, params, allowed_methods
+                    return route, params, []
         return None, {}, allowed_methods

@@ -26,7 +26,7 @@ class Request:
     :type client_address: str
     """
 
-    def __init__(self, method: str, path: str, headers: Dict[str, str], body: bytes = b'', client_address: str = ''):
+    def __init__(self, method: str, path: str, headers: Dict[str, str], body: bytes = b'', client_address: Optional[str] = None):
         self.method: str = method
         self.path: str = path
         self.headers: Dict[str, str] = headers
@@ -37,6 +37,7 @@ class Request:
         self.cookies: Dict[str, str] = self._parse_cookies()
         self.query_string: str = self._parse_query_string()
         self.args: Dict[str, str] = self._parse_query_params()
+        self.params: Dict[str, Any] = {}
         self.form: Dict[str, Any] = {}
         self.json: Optional[Dict[str, Any]] = self._parse_json()
         self.files: Dict[str, Any] = {}
