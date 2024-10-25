@@ -76,7 +76,7 @@ class Middleware:
         :param response: The response object that is about to be sent to the client.
         :type response: Response
         """
-        pass
+        return response
 
     async def after_response(self, request: Request, response: Response) -> None:
         """
@@ -88,4 +88,4 @@ class Middleware:
         :param response: The response object that was sent to the client.
         :type response: Response
         """
-        pass
+        return response

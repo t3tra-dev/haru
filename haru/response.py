@@ -42,6 +42,9 @@ class Response:
         # Set Content-Type header
         self.headers.setdefault('Content-Type', self.content_type)
 
+        # Set X-Powered-By header
+        self.headers.setdefault('X-Powered-By', 'Haru')
+
         # Set Content-Disposition header for file downloads
         if self.as_attachment:
             if self.filename:

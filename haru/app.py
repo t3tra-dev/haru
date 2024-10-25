@@ -27,6 +27,7 @@ except ImportError:
 __all__ = ['Haru']
 
 T = TypeVar('T')
+MiddlewareType = TypeVar('MiddlewareType', bound=Middleware)
 
 
 class Haru:
@@ -126,6 +127,32 @@ class Haru:
         """
         if middleware in self.middleware:
             self.middleware.remove(middleware)
+
+    def get_middleware(self, middleware_class: Type[MiddlewareType]) -> Optional[MiddlewareType]:
+        """
+        Retrieve middleware by its class from the application and its blueprints.
+
+        :param middleware_class: The class of the middleware to retrieve.
+        :type middleware_class: Type[MiddlewareType]
+        :return: The middleware instance if found, or None if not found.
+        :rtype: Optional[MiddlewareType]
+        """
+        for mw in self.get_middlewares():
+            if isinstance(mw, middleware_class):
+                return mw  # type: ignore
+        return None
+
+    def get_middlewares(self) -> List[Middleware]:
+        """
+        Retrieve all middleware instances from the application and its blueprints.
+
+        :return: A list of middleware instances.
+        :rtype: List[Middleware]
+        """
+        all_middlewares = self.middleware.copy()
+        for blueprint in self.blueprints:
+            all_middlewares.extend(blueprint.middleware)
+        return all_middlewares
 
     def run(self, host: str = '127.0.0.1', port: int = 8000, ws_host: Optional[str] = None, ws_port: Optional[int] = None) -> None:
         """
@@ -247,6 +274,10 @@ class Haru:
             response_headers = list(response.headers.items())
             start_response(status, response_headers)
             content = response.get_content()
+
+            for mw in reversed(middlewares):
+                self._run_middleware_method_sync(mw.after_response, request, response)
+
             return [content]
 
         except Exception as e:
@@ -258,6 +289,8 @@ class Haru:
             start_response(status, response_headers)
             content = response.get_content()
             return [content]
+
+    # 以下、_asgi_appメソッドとその他のメソッドも同様に after_response を追加します
 
     async def _asgi_app(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[Dict[str, Any]]], send: Callable[[Dict[str, Any]], Awaitable[None]]):
         """
@@ -273,7 +306,6 @@ class Haru:
         :type send: Callable
         """
         if scope['type'] == 'http':
-            # 既存のHTTP処理
             try:
                 # Read the request body
                 body = b""
@@ -342,6 +374,9 @@ class Haru:
                     'body': response.get_content(),
                 })
 
+                for mw in reversed(middlewares):
+                    await self._maybe_async(mw.after_response, request, response)
+
             except Exception as e:
                 response = await self._handle_exception_async(request, e)
 
@@ -372,6 +407,9 @@ class Haru:
 
             await send({'type': 'websocket.accept'})
 
+            # Middleware processing for WebSocket (if needed)
+            # Currently, middleware methods for WebSocket are not implemented.
+
             try:
                 await route.handler(scope, receive, send, **params)
             except Exception as e:
@@ -380,6 +418,8 @@ class Haru:
 
         else:
             pass
+
+    # 以下、他のメソッドはそのまま
 
     def asgi_app(self) -> Callable:
         """

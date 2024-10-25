@@ -92,7 +92,7 @@ class Blueprint:
         """
         for mw in self.middleware:
             if isinstance(mw, middleware_class):
-                return mw
+                return mw  # type: ignore
         return None
 
     def _full_path(self, path: str) -> str:
