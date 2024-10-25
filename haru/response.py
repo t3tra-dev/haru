@@ -3,6 +3,7 @@ This module defines the `Response` class, which represents an HTTP response in t
 The `Response` class is responsible for managing the response content, headers, status code,
 and other properties that are sent back to the client after processing an HTTP request.
 """
+from haru import __version__
 
 from typing import Any, Dict, Optional
 import os
@@ -42,6 +43,9 @@ class Response:
 
         # Set X-Powered-By header
         self.headers.setdefault('X-Powered-By', 'Haru')
+
+        # Set Server header
+        self.headers.setdefault('Server', f'Haru/{__version__}')
 
         # Set Content-Disposition header for file downloads
         if self.as_attachment:

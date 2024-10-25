@@ -257,7 +257,6 @@ class Haru:
                 for key, value in environ.items() if key.startswith('HTTP_')
             }
 
-            # CONTENT_TYPE と CONTENT_LENGTH をヘッダーに追加
             if 'CONTENT_TYPE' in environ:
                 headers['content-type'] = environ['CONTENT_TYPE']
             if 'CONTENT_LENGTH' in environ:
@@ -438,8 +437,30 @@ class Haru:
                 })
 
         elif scope['type'] == 'websocket':
-            # WebSocket handling (省略)
-            pass
+            path = scope.get('path', '/')
+            headers = {k.decode('latin1'): v.decode('latin1') for k, v in scope.get('headers', [])}
+            client = scope.get('client')
+            client_address = client[0] if client else ''
+            request = Request(method='GET', path=path, headers=headers, body=b'', client_address=client_address)
+
+            route, params, _ = self.router.match(request.path, 'GET')
+            if route is None or not getattr(route.handler, 'is_websocket', False):
+                await send({
+                    'type': 'websocket.close',
+                    'code': 1000,
+                })
+                return
+
+            await send({'type': 'websocket.accept'})
+
+            # TODO: Middleware processing for WebSocket
+            # Currently, middleware methods for WebSocket are not implemented.
+
+            try:
+                await route.handler(scope, receive, send, **params)
+            except Exception as e:
+                await send({'type': 'websocket.close', 'code': 1011})
+                raise e
 
         else:
             pass
