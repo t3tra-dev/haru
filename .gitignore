@@ -1,9 +1,3 @@
-# temp
-.vscode/
-tests/
-run.sh
-build.sh
-
 # PyPi Config
 .pypirc
 
