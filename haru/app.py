@@ -256,16 +256,15 @@ class Haru:
                 key[5:].replace('_', '-').lower(): value
                 for key, value in environ.items() if key.startswith('HTTP_')
             }
+
+            # CONTENT_TYPE と CONTENT_LENGTH をヘッダーに追加
+            if 'CONTENT_TYPE' in environ:
+                headers['content-type'] = environ['CONTENT_TYPE']
+            if 'CONTENT_LENGTH' in environ:
+                headers['content-length'] = environ['CONTENT_LENGTH']
+
             client_address = environ.get('REMOTE_ADDR', '')
             request = Request(method=method, path=path, headers=headers, body=body, client_address=client_address)
-
-            # Check if the path is a WebSocket route
-            if path in self.websocket_routes:
-                # Return a 400 Bad Request response
-                status = '400 Bad Request'
-                response_headers = [('Content-Type', 'text/plain; charset=utf-8')]
-                start_response(status, response_headers)
-                return [b'WebSocket route cannot be accessed via HTTP.']
 
             # Process the request and match the route
             route, params, allowed_methods = self.router.match(request.path, request.method)
@@ -284,7 +283,7 @@ class Haru:
                 else:
                     raise NotFound("Not Found")
 
-            # Store params in request
+            # Set request parameters from URL path
             request.params = params
 
             # Middleware processing
@@ -295,13 +294,22 @@ class Haru:
             for mw in middlewares:
                 self._run_middleware_method_sync(mw.before_request, request)
 
-            # Call the route handler and pass the request object
-            response = self._call_route_handler_sync(route.handler, request)
+            # Call the route handler and get the result
+            result = self._call_route_handler_sync(route.handler, request)
+
+            # Process the result and create a Response object
+            if isinstance(result, Response):
+                response = result
+            elif isinstance(result, tuple):
+                content, status_code = result
+                response = Response(content, status_code=status_code)
+            else:
+                response = Response(result)
 
             for mw in reversed(middlewares):
-                result = self._run_middleware_method_sync(mw.after_request, request, response)
-                if result is not None:
-                    response = result
+                middleware_result = self._run_middleware_method_sync(mw.after_request, request, response)
+                if middleware_result is not None:
+                    response = middleware_result
 
             for mw in middlewares:
                 self._run_middleware_method_sync(mw.before_response, request, response)
@@ -318,6 +326,7 @@ class Haru:
             return [content]
 
         except Exception as e:
+            # Error handling with correct status code
             response = self._handle_exception(request, e)
 
             # Send error response
@@ -475,7 +484,7 @@ class Haru:
             result = Response(result)
         return result
 
-    def _call_route_handler_sync(self, handler: Callable, request: Request) -> Response:
+    def _call_route_handler_sync(self, handler: Callable, request: Request) -> Any:
         """
         Calls the route handler synchronously.
 
@@ -485,8 +494,8 @@ class Haru:
         :type handler: Callable
         :param request: The request object.
         :type request: Request
-        :return: The response object.
-        :rtype: Response
+        :return: The result of the handler function.
+        :rtype: Any
         """
         if asyncio.iscoroutinefunction(handler):
             loop = asyncio.new_event_loop()
@@ -497,8 +506,6 @@ class Haru:
                 loop.close()
         else:
             result = handler(request)
-        if not isinstance(result, Response):
-            result = Response(result)
         return result
 
     async def _maybe_async(self, func: Callable, *args, **kwargs):
@@ -560,10 +567,10 @@ class Haru:
         :return: A Response object representing the error response.
         :rtype: Response
         """
-        # Find an error handler
         handler = None
         if isinstance(exc, HTTPException):
             handler = self.error_handlers.get(exc.status_code)
+
         for exc_type in self.error_handlers:
             if isinstance(exc, exc_type):
                 handler = self.error_handlers[exc_type]
@@ -579,7 +586,6 @@ class Haru:
                     result = Response(result)
             return result
         else:
-            # Default error response
             if isinstance(exc, HTTPException):
                 status_code = exc.status_code
                 description = exc.description
@@ -587,6 +593,7 @@ class Haru:
                 status_code = 500
                 description = 'Internal Server Error'
                 raise exc
+
             return Response(
                 content=description,
                 status_code=status_code,
