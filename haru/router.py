@@ -1,7 +1,6 @@
 """
 This module defines the routing system for the Haru web framework, including the `Route` and `Router` classes.
-The routing system is responsible for mapping URL paths to handler functions and ensuring that
-the correct handler is executed based on the request's path and HTTP method.
+The routing system is optimized by compiling all routes into a single regular expression for faster matching.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ class Route:
     :param methods: A list of HTTP methods (e.g., GET, POST) that this route allows.
     :type methods: List[str]
     :param blueprint: The blueprint this route is associated with, if any.
-    :type blueprint: Optional[Blueprint]
+    :type blueprint: Optional[Any]
     """
 
     def __init__(self, path: str, handler: Callable, methods: List[str], blueprint: Optional[Any] = None):
@@ -31,28 +30,28 @@ class Route:
         self.handler: Callable = handler
         self.methods: List[str] = methods
         self.blueprint: Optional[Any] = blueprint
-        self.param_types: Dict[str, str] = {}
-        self.pattern: Pattern = self._compile_path(path)
+        self.param_names: List[str] = []
+        self.pattern: str = self._convert_path_to_regex(path)
 
-    def _compile_path(self, path: str) -> Pattern:
+    def _convert_path_to_regex(self, path: str) -> str:
         """
-        Compiles the route path into a regular expression pattern.
+        Converts the route path into a regex pattern string.
 
         :param path: The route path.
         :type path: str
-        :return: The compiled regular expression pattern.
-        :rtype: Pattern
+        :return: The regex pattern as a string.
+        :rtype: str
         """
         # Replace path parameters like '<name:type>' with regex groups
         param_regex = re.compile(r'<(\w+)(?::(\w+))?>')
-        pattern = '^'
+        pattern = ''
         last_pos = 0
 
         for match in param_regex.finditer(path):
             start, end = match.span()
             param_name, param_type = match.groups()
             param_type = param_type or 'str'  # Default type is 'str'
-            self.param_types[param_name] = param_type
+            self.param_names.append(param_name)
 
             # Add the text before the parameter
             pattern += re.escape(path[last_pos:start])
@@ -74,27 +73,40 @@ class Route:
 
         # Add the remaining text after the last parameter
         pattern += re.escape(path[last_pos:])
-        pattern += '$'
-        return re.compile(pattern)
+        return pattern
 
-    def match(self, path: str) -> Optional[Dict[str, Any]]:
+    def convert_params(self, params: Dict[str, str]) -> Dict[str, Any]:
         """
-        Check if the provided path matches the route's pattern.
+        Convert the parameter values to their specified types.
 
-        :param path: The URL path to match against the route's pattern.
-        :type path: str
-        :return: A dictionary of matched parameters if the path matches, otherwise None.
-        :rtype: Optional[Dict[str, Any]]
+        :param params: The dictionary of parameter values as strings.
+        :type params: Dict[str, str]
+        :return: The dictionary of converted parameter values.
+        :rtype: Dict[str, Any]
         """
-        match = self.pattern.match(path)
-        if match:
-            params = match.groupdict()
-            # Convert params to their specified types
-            for name, value in params.items():
-                param_type = self.param_types.get(name, 'str')
-                params[name] = self._convert_param(value, param_type)
-            return params
-        return None
+        converted_params = {}
+        param_types = self._get_param_types()
+
+        for name in self.param_names:
+            value = params.get(name)
+            param_type = param_types.get(name, 'str')
+            converted_params[name] = self._convert_param(value, param_type)
+
+        return converted_params
+
+    def _get_param_types(self) -> Dict[str, str]:
+        """
+        Extract parameter types from the route path.
+
+        :return: A dictionary mapping parameter names to types.
+        :rtype: Dict[str, str]
+        """
+        param_types = {}
+        param_regex = re.compile(r'<(\w+)(?::(\w+))?>')
+        for match in param_regex.finditer(self.path):
+            param_name, param_type = match.groups()
+            param_types[param_name] = param_type or 'str'
+        return param_types
 
     def _convert_param(self, value: str, param_type: str) -> Any:
         """
@@ -122,7 +134,7 @@ class Route:
 class Router:
     """
     The `Router` class manages a collection of routes and provides functionality to add and match routes.
-    It serves as the core routing mechanism for the Haru web framework.
+    It compiles all routes into a single regular expression for faster matching.
 
     :param routes: A list of registered routes.
     :type routes: List[Route]
@@ -133,6 +145,9 @@ class Router:
         Initialize a new `Router` instance with an empty list of routes.
         """
         self.routes: List[Route] = []
+        self._compiled_pattern: Optional[Pattern] = None
+        self._route_map: Dict[int, Route] = {}
+        self._param_names_list: List[List[str]] = []
 
     def add_route(self, path: str, handler: Callable, methods: Optional[List[str]] = None, blueprint: Optional[Any] = None) -> None:
         """
@@ -148,7 +163,7 @@ class Router:
         :type blueprint: Optional[Any]
         """
         methods = methods or ['GET']
-        methods = [method.upper() for method in methods]
+        methods = [method.upper() for method in methods]  # Convert all methods to uppercase
 
         # Automatically include HEAD and OPTIONS methods if applicable
         if 'GET' in methods and 'HEAD' not in methods:
@@ -159,6 +174,22 @@ class Router:
 
         route = Route(path, handler, methods, blueprint)
         self.routes.append(route)
+        self._compiled_pattern = None  # Invalidate the compiled pattern
+
+    def compile(self) -> None:
+        """
+        Compile all routes into a single regular expression for faster matching.
+        """
+        pattern_strings = []
+        index = 0
+        for route in self.routes:
+            pattern_strings.append(f'(?P<route_{index}>{route.pattern})')
+            self._route_map[index] = route
+            self._param_names_list.append(route.param_names)
+            index += 1
+
+        full_pattern = '^' + '|'.join(pattern_strings) + '$'
+        self._compiled_pattern = re.compile(full_pattern)
 
     def match(self, path: str, method: str) -> Tuple[Optional[Route], Dict[str, Any], List[str]]:
         """
@@ -172,11 +203,23 @@ class Router:
                  and a list of allowed methods for the path.
         :rtype: Tuple[Optional[Route], Dict[str, Any], List[str]]
         """
+        if self._compiled_pattern is None:
+            self.compile()
+
+        match = self._compiled_pattern.match(path)
         allowed_methods: List[str] = []
-        for route in self.routes:
-            params = route.match(path)
-            if params is not None:
-                allowed_methods.extend(route.methods)
-                if method.upper() in route.methods:
-                    return route, params, []
-        return None, {}, allowed_methods
+
+        if match:
+            for index, route in self._route_map.items():
+                if match.group(f'route_{index}') is not None:
+                    allowed_methods.extend(route.methods)
+                    if method.upper() in route.methods:  # Ensure method is checked in uppercase
+                        # Extract parameters
+                        param_names = self._param_names_list[index]
+                        params = {name: match.group(name) for name in param_names}
+                        # Convert parameter types
+                        params = route.convert_params(params)
+                        return route, params, []
+            return None, {}, allowed_methods  # Method not allowed
+        else:
+            return None, {}, allowed_methods  # Not found
