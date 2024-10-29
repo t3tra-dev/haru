@@ -8,6 +8,7 @@ __all__ = [
     'CSRFProtectionMiddleware',
     'IPRestrictionMiddleware',
     'JWTAuthMiddleware',
+    'RateLimitMiddleware',
     'LoggerMiddleware',
     'SecureHeadersMiddleware', 'SecureHeadersOptions',
 ]
@@ -21,5 +22,6 @@ from .cors import CORSMiddleware
 from .csrf_protection import CSRFProtectionMiddleware
 from .ip_restriction import IPRestrictionMiddleware
 from .jwt_auth import JWTAuthMiddleware
+from .late_limit import RateLimitMiddleware
 from .logger import LoggerMiddleware
 from .secure_headers import SecureHeadersMiddleware, SecureHeadersOptions
