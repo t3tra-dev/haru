@@ -12,6 +12,8 @@ from .element import (
     Table, Tbody, Td, Template, Textarea, Tfoot, Th, Thead, Time, Title, Tr, Track,
     U, Ul, Var, Video, Wbr, Xmp
 )
+from .page import Page
+from . import utils
 
 __all__ = [
     'Element', 'SelfClosingElement',
@@ -29,5 +31,6 @@ __all__ = [
     'S', 'Samp', 'Script', 'Section', 'Select', 'Small', 'Source', 'Span',
     'Strong', 'Style', 'Sub', 'Summary', 'Sup', 'Svg', 'Table', 'Tbody',
     'Td', 'Template', 'Textarea', 'Tfoot', 'Th', 'Thead', 'Time', 'Title',
-    'Tr', 'Track', 'U', 'Ul', 'Var', 'Video', 'Wbr', 'Xmp'
+    'Tr', 'Track', 'U', 'Ul', 'Var', 'Video', 'Wbr', 'Xmp',
+    'Page', 'utils'
 ]
