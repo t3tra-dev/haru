@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 from .element import Element, Html, Head, Body, Title, Meta, Link
 
 __all__ = ['Page']
@@ -46,7 +46,7 @@ class Page:
             url: Optional[str] = None,
             image: Optional[str] = None,
             site_name: Optional[str] = None,
-            twitter_card: Optional[str] = 'summary_large_image'
+            twitter_card: Optional[Literal['summary', 'summary_large_image', 'app', 'player']] = 'summary'
     ) -> None:
         """
         Adds or updates basic metadata, OGP, and Twitter Card meta tags in the head section.
@@ -61,7 +61,7 @@ class Page:
         :type image: Optional[str]
         :param site_name: The site name.
         :type site_name: Optional[str]
-        :param twitter_card: The Twitter Card type (default is 'summary_large_image').
+        :param twitter_card: The Twitter Card type (default is 'summary').
         :type twitter_card: Optional[str]
         """
         if title:

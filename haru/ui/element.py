@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Optional, Dict
+from typing import Union, Optional, List, Dict
 import html
 
 __all__ = [
@@ -37,9 +37,81 @@ class Element:
     """
     def __init__(self, tag: str, *args: Union[str, Element], attributes: Optional[Dict[str, Union[str, bool]]] = None, raw: bool = False) -> None:
         self.tag = tag
-        self.children = list(args)
+        self.children: List[Union[str, Element]] = list(args)
         self.attributes = attributes if attributes else {}
         self.raw = raw
+        self.parent: Optional[Element] = None
+
+        for child in self.children:
+            if isinstance(child, Element):
+                child.parent = self
+
+    @property
+    def children_elements(self) -> List[Element]:
+        """Retrieve only Element-type children, excluding strings."""
+        return [child for child in self.children if isinstance(child, Element)]
+
+    def append_child(self, child: Union[Element, str]) -> None:
+        """Add a child element."""
+        self.children.append(child)
+        if isinstance(child, Element):
+            child.parent = self
+
+    def remove_child(self, child: Union[Element, str]) -> None:
+        """Remove a child element."""
+        if child in self.children:
+            self.children.remove(child)
+            if isinstance(child, Element):
+                child.parent = None
+
+    def get_element_by_id(self, element_id: str) -> Optional[Element]:
+        """Find the first element with a matching id attribute."""
+        if self.attributes.get("id") == element_id:
+            return self
+        for child in self.children_elements:
+            result = child.get_element_by_id(element_id)
+            if result:
+                return result
+        return None
+
+    def get_elements_by_class_name(self, class_name: str) -> List[Element]:
+        """Find all elements with a matching class name."""
+        elements = []
+        if "class" in self.attributes and class_name in self.attributes["class"].split():
+            elements.append(self)
+        for child in self.children_elements:
+            elements.extend(child.get_elements_by_class_name(class_name))
+        return elements
+
+    def query_selector(self, selector: str) -> Optional[Element]:
+        """Select the first element that matches the CSS-like selector (only supports basic selectors)."""
+        if selector.startswith("#"):
+            return self.get_element_by_id(selector[1:])
+        elif selector.startswith("."):
+            elements = self.get_elements_by_class_name(selector[1:])
+            return elements[0] if elements else None
+        elif selector == self.tag:
+            return self
+        for child in self.children_elements:
+            result = child.query_selector(selector)
+            if result:
+                return result
+        return None
+
+    def query_selector_all(self, selector: str) -> List[Element]:
+        """Select all elements that match the CSS-like selector (only supports basic selectors)."""
+        if selector.startswith("."):
+            return self.get_elements_by_class_name(selector[1:])
+        elif selector.startswith("#"):
+            result = self.get_element_by_id(selector[1:])
+            return [result] if result else []
+        elif selector == self.tag:
+            elements = [self]
+        else:
+            elements = []
+        for child in self.children_elements:
+            elements.extend(child.query_selector_all(selector))
+        return elements
 
     def render(self) -> str:
         """
