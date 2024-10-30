@@ -4,11 +4,13 @@ from haru.ui.utils import Markdown
 view: Page = Page(
     Div(
         H1('Hello, World!'),
-        Markdown("""
-# Hello, World!
+        Markdown(
+            """
+            # Hello, World!
 
-This is a test of the UI modules.
-"""),
+            This is a test of the UI modules.
+            """
+        ),
         attributes={'class': 'container'}
     )
 )
