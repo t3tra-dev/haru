@@ -1,3 +1,9 @@
+"""
+This module provides the `RateLimitMiddleware` class, which limits the rate of incoming requests
+based on a specified key (e.g., IP address, User-Agent). It does not use any external storage,
+making it lightweight and suitable for simple rate-limiting needs.
+"""
+
 from time import time
 from typing import Callable, Dict, Optional
 from haru.middleware import Middleware

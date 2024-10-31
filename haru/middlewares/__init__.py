@@ -1,3 +1,8 @@
+"""
+This module provides middleware classes for the Haru web framework. Middleware is used to handle
+requests and responses in a flexible and reusable manner.
+"""
+
 __all__ = [
     'BasicAuthMiddleware',
     'BearerAuthMiddleware',

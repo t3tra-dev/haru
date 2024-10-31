@@ -1,3 +1,8 @@
+"""
+Utility functions for the haru.ui module.
+"""
+
+
 import re
 from typing import Union, List
 from .element import Element, Div, Pre, Code, Ul, Ol, Li, H1, H2, H3, H4, H5, H6, Blockquote, Hr, A, Img, Table, Tr, Td

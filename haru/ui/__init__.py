@@ -1,3 +1,10 @@
+"""
+The haru.ui modules provide UI components and utilities for building web interfaces in the Haru framework.
+It includes HTML element classes for constructing DOM structures, a Page class for creating complete
+web pages, and utility functions for UI-related operations. The module makes it easy to create
+dynamic and interactive web UIs using Python code.
+"""
+
 from .element import (
     Element, SelfClosingElement,
     A, Abbr, Acronym, Address, Area, Article, Aside, Audio,

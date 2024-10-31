@@ -1,3 +1,8 @@
+"""
+This module provides the `CompressMiddleware` class, which compresses HTTP responses based on the
+Accept-Encoding header and content type. It supports gzip and deflate encoding methods.
+"""
+
 import re
 import gzip
 import zlib

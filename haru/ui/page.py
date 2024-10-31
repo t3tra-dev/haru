@@ -1,3 +1,8 @@
+"""
+This class represents a complete HTML page structure. It automatically structures
+elements based on the provided root element.
+"""
+
 from typing import Literal, Optional, Union, List
 from .element import Element, Html, Head, Body, Title, Meta, Link
 

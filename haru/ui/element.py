@@ -1,3 +1,7 @@
+"""
+This module provides classes for representing HTML elements and their structures.
+"""
+
 from __future__ import annotations
 from typing import Union, Optional, List, Dict
 import html

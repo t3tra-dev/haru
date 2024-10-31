@@ -1,3 +1,9 @@
+"""
+This module provides the `SecureHeadersMiddleware` class, which automatically adds security-related
+HTTP headers to responses. It helps protect against common web vulnerabilities and enhances
+security.
+"""
+
 from haru.middleware import Middleware
 from haru.request import Request
 from haru.response import Response
