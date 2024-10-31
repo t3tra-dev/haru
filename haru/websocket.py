@@ -15,7 +15,7 @@ import threading
 import logging
 from typing import Callable, Dict, Awaitable, Optional
 
-__all__ = ['WebSocketServerProtocol', 'WebSocketServer', 'upgrade_websocket']
+__all__ = ["WebSocketServerProtocol", "WebSocketServer", "upgrade_websocket"]
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +25,15 @@ try:
 
     class WebSocketServerProtocol(_WebSocketServerProtocol):
         pass
+
 except ImportError:
     websockets = None
     WebSocketServerProtocol = None
 
 
-def upgrade_websocket(func: Callable[[WebSocketServerProtocol], Awaitable[None]]) -> Callable:
+def upgrade_websocket(
+    func: Callable[[WebSocketServerProtocol], Awaitable[None]]
+) -> Callable:
     """
     Decorator to register a WebSocket route handler.
 
@@ -67,9 +70,13 @@ class WebSocketServer:
         self.port: int = port
         self.loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self.thread: Optional[threading.Thread] = None
-        self.routes: Dict[str, Callable[[WebSocketServerProtocol], Awaitable[None]]] = {}
+        self.routes: Dict[str, Callable[[WebSocketServerProtocol], Awaitable[None]]] = (
+            {}
+        )
 
-    def add_route(self, path: str, handler: Callable[[WebSocketServerProtocol], Awaitable[None]]) -> None:
+    def add_route(
+        self, path: str, handler: Callable[[WebSocketServerProtocol], Awaitable[None]]
+    ) -> None:
         """
         Register a WebSocket route with its handler.
 
@@ -116,5 +123,7 @@ class WebSocketServer:
                 logger.error(f"Error in WebSocket handler for path '{path}': {e}")
                 await websocket.close(code=1011)
         else:
-            logger.warning(f"No WebSocket handler found for path '{path}'. Connection will be closed.")
+            logger.warning(
+                f"No WebSocket handler found for path '{path}'. Connection will be closed."
+            )
             await websocket.close()

@@ -12,7 +12,7 @@ from typing import IO, Optional, AsyncIterator, Iterator, Union
 
 from .response import Response
 
-__all__ = ['FileWrapper', 'BytesWrapper']
+__all__ = ["FileWrapper", "BytesWrapper"]
 
 
 class FileWrapper(Response):
@@ -50,7 +50,7 @@ class FileWrapper(Response):
         :return: A generator yielding chunks of file data.
         :rtype: Iterator[bytes]
         """
-        with open(self.filepath, 'rb') as f:
+        with open(self.filepath, "rb") as f:
             while True:
                 data = f.read(self.chunk_size)
                 if not data:
@@ -65,7 +65,7 @@ class FileWrapper(Response):
         :rtype: AsyncIterator[bytes]
         """
         loop = asyncio.get_running_loop()
-        with open(self.filepath, 'rb') as f:
+        with open(self.filepath, "rb") as f:
             while True:
                 data = await loop.run_in_executor(None, f.read, self.chunk_size)
                 if not data:

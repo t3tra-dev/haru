@@ -33,7 +33,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.response import Response
 
-__all__ = ['CORSMiddleware']
+__all__ = ["CORSMiddleware"]
 
 
 class CORSMiddleware(Middleware):
@@ -79,8 +79,8 @@ class CORSMiddleware(Middleware):
         """
         super().__init__()
         self.allow_origins = allow_origins
-        self.allow_methods = ', '.join(allow_methods)
-        self.allow_headers = ', '.join(allow_headers)
+        self.allow_methods = ", ".join(allow_methods)
+        self.allow_headers = ", ".join(allow_headers)
         self.max_age = str(max_age) if max_age is not None else None
         self.allow_credentials = allow_credentials
 
@@ -96,13 +96,13 @@ class CORSMiddleware(Middleware):
         :return: The response object with the CORS headers added.
         :rtype: Response
         """
-        origin = request.headers.get('Origin')
-        if origin and (origin in self.allow_origins or '*' in self.allow_origins):
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Methods'] = self.allow_methods
-            response.headers['Access-Control-Allow-Headers'] = self.allow_headers
+        origin = request.headers.get("Origin")
+        if origin and (origin in self.allow_origins or "*" in self.allow_origins):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = self.allow_methods
+            response.headers["Access-Control-Allow-Headers"] = self.allow_headers
             if self.max_age:
-                response.headers['Access-Control-Max-Age'] = self.max_age
+                response.headers["Access-Control-Max-Age"] = self.max_age
             if self.allow_credentials:
-                response.headers['Access-Control-Allow-Credentials'] = 'true'
+                response.headers["Access-Control-Allow-Credentials"] = "true"
         return response

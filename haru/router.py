@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Callable, Dict, List, Optional, Tuple, Any, Pattern
 import re
 
-__all__ = ['Route', 'Router']
+__all__ = ["Route", "Router"]
 
 
 class Route:
@@ -26,7 +26,13 @@ class Route:
     :type blueprint: Optional[Blueprint]
     """
 
-    def __init__(self, path: str, handler: Callable, methods: List[str], blueprint: Optional[Any] = None):
+    def __init__(
+        self,
+        path: str,
+        handler: Callable,
+        methods: List[str],
+        blueprint: Optional[Any] = None,
+    ):
         self.path: str = path
         self.handler: Callable = handler
         self.methods: List[str] = methods
@@ -52,7 +58,13 @@ class Router:
         self.compiled: bool = False
         self._regex: Optional[Pattern] = None
 
-    def add_route(self, path: str, handler: Callable, methods: Optional[List[str]] = None, blueprint: Optional[Any] = None) -> None:
+    def add_route(
+        self,
+        path: str,
+        handler: Callable,
+        methods: Optional[List[str]] = None,
+        blueprint: Optional[Any] = None,
+    ) -> None:
         """
         Add a new route to the router.
 
@@ -65,21 +77,23 @@ class Router:
         :param blueprint: The blueprint that this route is associated with, if any.
         :type blueprint: Optional[Any]
         """
-        methods = methods or ['GET']
+        methods = methods or ["GET"]
         methods = [method.upper() for method in methods]
 
         # Automatically include HEAD and OPTIONS methods if applicable
-        if 'GET' in methods and 'HEAD' not in methods:
-            methods.append('HEAD')
+        if "GET" in methods and "HEAD" not in methods:
+            methods.append("HEAD")
 
-        if 'OPTIONS' not in methods:
-            methods.append('OPTIONS')
+        if "OPTIONS" not in methods:
+            methods.append("OPTIONS")
 
         route = Route(path, handler, methods, blueprint)
         self.routes.append(route)
         self.compiled = False  # Mark as needing recompilation
 
-    def match(self, path: str, method: str) -> Tuple[Optional[Route], Dict[str, Any], List[str]]:
+    def match(
+        self, path: str, method: str
+    ) -> Tuple[Optional[Route], Dict[str, Any], List[str]]:
         """
         Match the given path and HTTP method to a registered route.
 
@@ -102,7 +116,7 @@ class Router:
         # Identify which route matched
         route_index = None
         for i in range(len(self.routes)):
-            group_name = f'route_{i}'
+            group_name = f"route_{i}"
             if match.group(group_name):
                 route_index = i
                 break
@@ -118,7 +132,7 @@ class Router:
         params = {}
         for name, value in match.groupdict().items():
             if value is not None:
-                m = re.match(r'param_(\d+)_(.+)', name)
+                m = re.match(r"param_(\d+)_(.+)", name)
                 if m:
                     idx, param_name = m.groups()
                     idx = int(idx)
@@ -135,13 +149,15 @@ class Router:
         for index, route in enumerate(self.routes):
             pattern, param_types = self._compile_route_pattern(route.path, index)
             route.param_types = param_types
-            group_name = f'route_{index}'
-            patterns.append(f'(?P<{group_name}>' + pattern + ')')
-        combined_pattern = '^(' + '|'.join(patterns) + ')$'
+            group_name = f"route_{index}"
+            patterns.append(f"(?P<{group_name}>" + pattern + ")")
+        combined_pattern = "^(" + "|".join(patterns) + ")$"
         self._regex = re.compile(combined_pattern)
         self.compiled = True
 
-    def _compile_route_pattern(self, path: str, route_index: int) -> Tuple[str, Dict[str, str]]:
+    def _compile_route_pattern(
+        self, path: str, route_index: int
+    ) -> Tuple[str, Dict[str, str]]:
         """
         Compile an individual route's path pattern into a regular expression fragment.
 
@@ -152,14 +168,14 @@ class Router:
         :return: A tuple containing the regex pattern and parameter types.
         :rtype: Tuple[str, Dict[str, str]]
         """
-        param_regex = re.compile(r'<(\w+)(?::(\w+))?>')
-        pattern = ''
+        param_regex = re.compile(r"<(\w+)(?::(\w+))?>")
+        pattern = ""
         last_pos = 0
         param_types = {}
         for match in param_regex.finditer(path):
             start, end = match.span()
             param_name, param_type = match.groups()
-            param_type = param_type or 'str'  # Default type is 'str'
+            param_type = param_type or "str"  # Default type is 'str'
             param_types[param_name] = param_type
 
             # Add the text before the parameter
@@ -167,24 +183,28 @@ class Router:
 
             # Add the parameter pattern with unique group name
             if route_index is not None and route_index >= 0:
-                group_name = f'param_{route_index}_{param_name}'
+                group_name = f"param_{route_index}_{param_name}"
             else:
                 # Use param_name as group name when route_index is None or negative
                 group_name = param_name
 
             # Ensure group name is a valid Python identifier
             if not group_name.isidentifier():
-                group_name = f'param_{abs(route_index)}_{param_name}' if route_index is not None else param_name
-                group_name = re.sub(r'\W|^(?=\d)', '_', group_name)
+                group_name = (
+                    f"param_{abs(route_index)}_{param_name}"
+                    if route_index is not None
+                    else param_name
+                )
+                group_name = re.sub(r"\W|^(?=\d)", "_", group_name)
 
-            if param_type == 'str':
-                regex = f'(?P<{group_name}>[^/]+)'
-            elif param_type == 'int':
-                regex = f'(?P<{group_name}>\\d+)'
-            elif param_type == 'float':
-                regex = f'(?P<{group_name}>\\d+\\.\\d+)'
-            elif param_type == 'path':
-                regex = f'(?P<{group_name}>.+)'
+            if param_type == "str":
+                regex = f"(?P<{group_name}>[^/]+)"
+            elif param_type == "int":
+                regex = f"(?P<{group_name}>\\d+)"
+            elif param_type == "float":
+                regex = f"(?P<{group_name}>\\d+\\.\\d+)"
+            elif param_type == "path":
+                regex = f"(?P<{group_name}>.+)"
             else:
                 raise ValueError(f"Unsupported parameter type: {param_type}")
 
@@ -208,7 +228,7 @@ class Router:
         for route in self.routes:
             # Pass route_index=None to avoid including it in group names
             pattern, _ = self._compile_route_pattern(route.path, None)
-            route_regex = re.compile('^' + pattern + '$')
+            route_regex = re.compile("^" + pattern + "$")
             if route_regex.match(path):
                 allowed_methods.extend(route.methods)
         return allowed_methods
@@ -224,13 +244,13 @@ class Router:
         :return: The converted value.
         :rtype: Any
         """
-        if param_type == 'str':
+        if param_type == "str":
             return value
-        elif param_type == 'int':
+        elif param_type == "int":
             return int(value)
-        elif param_type == 'float':
+        elif param_type == "float":
             return float(value)
-        elif param_type == 'path':
+        elif param_type == "path":
             return value  # 'path' type remains as string
         else:
             return value  # Unknown type, return as string

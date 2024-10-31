@@ -25,7 +25,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.response import Response
 
-__all__ = ['LoggerMiddleware']
+__all__ = ["LoggerMiddleware"]
 
 
 class LoggerMiddleware(Middleware):
@@ -44,7 +44,9 @@ class LoggerMiddleware(Middleware):
         app.add_middleware(LoggerMiddleware(logger=logging.getLogger('haru'), level=logging.INFO))
     """
 
-    def __init__(self, logger: Optional[logging.Logger] = None, level: int = logging.INFO):
+    def __init__(
+        self, logger: Optional[logging.Logger] = None, level: int = logging.INFO
+    ):
         """
         Initialize the `LoggerMiddleware` with a logger instance and logging level.
 
@@ -77,5 +79,7 @@ class LoggerMiddleware(Middleware):
         :type response: Response
         """
         duration = time() - request.start_time
-        message = f'{request.method} {request.path} {response.status_code} {duration:.4f}s'
+        message = (
+            f"{request.method} {request.path} {response.status_code} {duration:.4f}s"
+        )
         self.logger.log(self.level, message)

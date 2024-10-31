@@ -9,7 +9,7 @@ from sqlalchemy.engine import Engine
 session_factory_dict: Dict[str, sessionmaker] = {}
 
 
-def get_session(engine: Engine, alias: Optional[str] = 'default') -> Session:
+def get_session(engine: Engine, alias: Optional[str] = "default") -> Session:
     """
     Create or retrieve a session for the given engine.
 

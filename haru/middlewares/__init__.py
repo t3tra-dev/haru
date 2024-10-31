@@ -4,18 +4,19 @@ requests and responses in a flexible and reusable manner.
 """
 
 __all__ = [
-    'BasicAuthMiddleware',
-    'BearerAuthMiddleware',
-    'BodyLimitMiddleware',
-    'CacheMiddleware',
-    'CompressMiddleware',
-    'CORSMiddleware',
-    'CSRFProtectionMiddleware',
-    'IPRestrictionMiddleware',
-    'JWTAuthMiddleware',
-    'RateLimitMiddleware',
-    'LoggerMiddleware',
-    'SecureHeadersMiddleware', 'SecureHeadersOptions',
+    "BasicAuthMiddleware",
+    "BearerAuthMiddleware",
+    "BodyLimitMiddleware",
+    "CacheMiddleware",
+    "CompressMiddleware",
+    "CORSMiddleware",
+    "CSRFProtectionMiddleware",
+    "IPRestrictionMiddleware",
+    "JWTAuthMiddleware",
+    "RateLimitMiddleware",
+    "LoggerMiddleware",
+    "SecureHeadersMiddleware",
+    "SecureHeadersOptions",
 ]
 
 from .basic_auth import BasicAuthMiddleware

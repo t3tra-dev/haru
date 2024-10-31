@@ -25,7 +25,7 @@ from haru.response import Response
 import time
 import hashlib
 
-__all__ = ['CacheMiddleware']
+__all__ = ["CacheMiddleware"]
 
 
 class CacheMiddleware(Middleware):
@@ -43,7 +43,9 @@ class CacheMiddleware(Middleware):
     :type cache_key_func: Callable[[Request], str]
     """
 
-    def __init__(self, cache_time: int = 60, cache_key_func: Callable[[Request], str] = None):
+    def __init__(
+        self, cache_time: int = 60, cache_key_func: Callable[[Request], str] = None
+    ):
         """
         Initialize the `CacheMiddleware` with a cache duration and an optional cache key generator function.
 
@@ -66,8 +68,8 @@ class CacheMiddleware(Middleware):
         :return: A hashed cache key.
         :rtype: str
         """
-        key = request.path + '?' + request.query_string
-        return hashlib.sha256(key.encode('utf-8')).hexdigest()
+        key = request.path + "?" + request.query_string
+        return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
     def before_request(self, request: Request) -> None:
         """
@@ -79,8 +81,8 @@ class CacheMiddleware(Middleware):
         """
         cache_key = self.cache_key_func(request)
         cached = self.cache.get(cache_key)
-        if cached and time.time() < cached['expires_at']:
-            request.cached_response = cached['response']
+        if cached and time.time() < cached["expires_at"]:
+            request.cached_response = cached["response"]
 
     def after_request(self, request: Request, response: Response) -> Response:
         """
@@ -93,12 +95,12 @@ class CacheMiddleware(Middleware):
         :return: The original or cached response.
         :rtype: Response
         """
-        if hasattr(request, 'cached_response'):
+        if hasattr(request, "cached_response"):
             return request.cached_response
         else:
             cache_key = self.cache_key_func(request)
             self.cache[cache_key] = {
-                'response': response,
-                'expires_at': time.time() + self.cache_time
+                "response": response,
+                "expires_at": time.time() + self.cache_time,
             }
             return response

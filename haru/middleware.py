@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 from .request import Request
 from .response import Response
 
-__all__ = ['Middleware']
+__all__ = ["Middleware"]
 
 
 class Middleware:
@@ -52,7 +52,9 @@ class Middleware:
         """
         pass
 
-    async def after_request(self, request: Request, response: Response) -> Optional[Response]:
+    async def after_request(
+        self, request: Request, response: Response
+    ) -> Optional[Response]:
         """
         Called after the request is processed but before the response is sent. This method
         can modify the response object if necessary.

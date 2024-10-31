@@ -21,7 +21,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.exceptions import Unauthorized
 
-__all__ = ['BasicAuthMiddleware']
+__all__ = ["BasicAuthMiddleware"]
 
 
 class BasicAuthMiddleware(Middleware):
@@ -40,7 +40,7 @@ class BasicAuthMiddleware(Middleware):
     :raises Unauthorized: If authentication fails or credentials are missing.
     """
 
-    def __init__(self, users: List[Dict[str, str]], realm: Optional[str] = 'Protected'):
+    def __init__(self, users: List[Dict[str, str]], realm: Optional[str] = "Protected"):
         """
         Initialize the `BasicAuthMiddleware` with a list of users and an optional authentication realm.
 
@@ -50,7 +50,7 @@ class BasicAuthMiddleware(Middleware):
         :type realm: Optional[str]
         """
         super().__init__()
-        self.users = {user['username']: user['password'] for user in users}
+        self.users = {user["username"]: user["password"] for user in users}
         self.realm = realm
 
     def before_request(self, request: Request) -> None:
@@ -63,15 +63,15 @@ class BasicAuthMiddleware(Middleware):
 
         :raises Unauthorized: If the 'Authorization' header is missing, malformed, or contains invalid credentials.
         """
-        auth_header = request.headers.get('Authorization')
-        if auth_header is None or not auth_header.startswith('Basic '):
+        auth_header = request.headers.get("Authorization")
+        if auth_header is None or not auth_header.startswith("Basic "):
             self._unauthorized()
         else:
             # Decode Base64 encoded credentials
-            encoded_credentials = auth_header.split(' ', 1)[1]
+            encoded_credentials = auth_header.split(" ", 1)[1]
             try:
-                decoded_credentials = b64decode(encoded_credentials).decode('utf-8')
-                username, password = decoded_credentials.split(':', 1)
+                decoded_credentials = b64decode(encoded_credentials).decode("utf-8")
+                username, password = decoded_credentials.split(":", 1)
                 expected_password = self.users.get(username)
                 if expected_password is None or password != expected_password:
                     self._unauthorized()
@@ -82,7 +82,5 @@ class BasicAuthMiddleware(Middleware):
         """
         Helper method to raise an Unauthorized exception with a WWW-Authenticate header.
         """
-        headers = {
-            'WWW-Authenticate': f'Basic realm="{self.realm}"'
-        }
-        raise Unauthorized(description='Authentication required.', headers=headers)
+        headers = {"WWW-Authenticate": f'Basic realm="{self.realm}"'}
+        raise Unauthorized(description="Authentication required.", headers=headers)

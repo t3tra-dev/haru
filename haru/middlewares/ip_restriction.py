@@ -26,7 +26,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.exceptions import Forbidden
 
-__all__ = ['IPRestrictionMiddleware']
+__all__ = ["IPRestrictionMiddleware"]
 
 
 class IPRestrictionMiddleware(Middleware):
@@ -51,7 +51,7 @@ class IPRestrictionMiddleware(Middleware):
         self,
         allowed_ips: List[str] = None,
         blocked_ips: List[str] = None,
-        default_action: str = 'allow',
+        default_action: str = "allow",
     ):
         """
         Initialize the `IPRestrictionMiddleware` with allowed and blocked IPs and a default action for unspecified IPs.
@@ -84,15 +84,15 @@ class IPRestrictionMiddleware(Middleware):
         # Check if IP is in the blocked list
         for net in self.blocked_ips:
             if client_ip in net:
-                raise Forbidden(description='Access denied.')
+                raise Forbidden(description="Access denied.")
 
         # Check if IP is in the allowed list
         if self.allowed_ips:
             for net in self.allowed_ips:
                 if client_ip in net:
                     return
-            raise Forbidden(description='Access denied.')
+            raise Forbidden(description="Access denied.")
         else:
             # Apply default action
-            if self.default_action == 'block':
-                raise Forbidden(description='Access denied.')
+            if self.default_action == "block":
+                raise Forbidden(description="Access denied.")

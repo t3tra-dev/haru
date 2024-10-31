@@ -5,7 +5,7 @@ This module defines a Column class that extends SQLAlchemy's Column with robust 
 from sqlalchemy import Column as SAColumn
 from typing import Any, Optional, Union
 
-__all__ = ['Column']
+__all__ = ["Column"]
 
 
 class Column(SAColumn):
@@ -42,7 +42,7 @@ class Column(SAColumn):
         autoincrement: Union[bool, str, None] = None,
         unique: bool = False,
         index: bool = False,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(
             name,
@@ -54,5 +54,5 @@ class Column(SAColumn):
             autoincrement=autoincrement,
             unique=unique,
             index=index,
-            **kwargs
+            **kwargs,
         )

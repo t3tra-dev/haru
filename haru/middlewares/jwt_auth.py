@@ -23,7 +23,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.exceptions import Unauthorized
 
-__all__ = ['JWTAuthMiddleware']
+__all__ = ["JWTAuthMiddleware"]
 
 
 class JWTAuthMiddleware(Middleware):
@@ -42,7 +42,9 @@ class JWTAuthMiddleware(Middleware):
     :raises Unauthorized: If authentication fails or token is missing/invalid.
     """
 
-    def __init__(self, secret_key: str, algorithm: str = 'HS256', verify_exp: bool = True):
+    def __init__(
+        self, secret_key: str, algorithm: str = "HS256", verify_exp: bool = True
+    ):
         """
         Initialize the `JWTAuthMiddleware` with a secret key and algorithm.
 
@@ -58,8 +60,10 @@ class JWTAuthMiddleware(Middleware):
         self.algorithm = algorithm
         self.verify_exp = verify_exp
 
-        if self.algorithm != 'HS256':
-            raise ValueError("Unsupported algorithm. Only 'HS256' is supported in this implementation.")
+        if self.algorithm != "HS256":
+            raise ValueError(
+                "Unsupported algorithm. Only 'HS256' is supported in this implementation."
+            )
 
     def before_request(self, request: Request) -> None:
         """
@@ -71,14 +75,14 @@ class JWTAuthMiddleware(Middleware):
 
         :raises Unauthorized: If the 'Authorization' header is missing, malformed, or contains an invalid token.
         """
-        auth_header = request.headers.get('Authorization')
-        if auth_header is None or not auth_header.startswith('Bearer '):
-            self._unauthorized('Authorization header missing or malformed.')
+        auth_header = request.headers.get("Authorization")
+        if auth_header is None or not auth_header.startswith("Bearer "):
+            self._unauthorized("Authorization header missing or malformed.")
         else:
-            token = auth_header.split(' ', 1)[1]
+            token = auth_header.split(" ", 1)[1]
             payload = self._decode_jwt(token)
             if payload is None:
-                self._unauthorized('Invalid or expired token.')
+                self._unauthorized("Invalid or expired token.")
             else:
                 # Attach payload to the request for use in route handlers
                 request.user = payload
@@ -99,7 +103,7 @@ class JWTAuthMiddleware(Middleware):
         :rtype: Optional[dict]
         """
         try:
-            header_b64, payload_b64, signature_b64 = token.split('.')
+            header_b64, payload_b64, signature_b64 = token.split(".")
         except ValueError:
             return None
 
@@ -113,17 +117,18 @@ class JWTAuthMiddleware(Middleware):
         header_json = json.loads(header)
         payload_json = json.loads(payload)
 
-        if header_json.get('alg') != self.algorithm:
+        if header_json.get("alg") != self.algorithm:
             return None
 
-        expected_signature = self._sign(f'{header_b64}.{payload_b64}')
+        expected_signature = self._sign(f"{header_b64}.{payload_b64}")
 
         if not hmac.compare_digest(signature, expected_signature):
             return None
 
-        if self.verify_exp and 'exp' in payload_json:
+        if self.verify_exp and "exp" in payload_json:
             import time
-            if time.time() > payload_json['exp']:
+
+            if time.time() > payload_json["exp"]:
                 return None
 
         return payload_json
@@ -138,9 +143,7 @@ class JWTAuthMiddleware(Middleware):
         :rtype: bytes
         """
         return hmac.new(
-            key=self.secret_key.encode(),
-            msg=msg.encode(),
-            digestmod=hashlib.sha256
+            key=self.secret_key.encode(), msg=msg.encode(), digestmod=hashlib.sha256
         ).digest()
 
     def _b64_decode(self, data: str, urlsafe: bool = True) -> Optional[bytes]:
@@ -155,8 +158,9 @@ class JWTAuthMiddleware(Middleware):
         :rtype: Optional[bytes]
         """
         import binascii
+
         try:
-            padding = '=' * (-len(data) % 4)  # Fix padding
+            padding = "=" * (-len(data) % 4)  # Fix padding
             if urlsafe:
                 return base64.urlsafe_b64decode(data + padding)
             else:

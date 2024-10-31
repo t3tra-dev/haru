@@ -6,7 +6,7 @@ elements based on the provided root element.
 from typing import Literal, Optional, Union, List
 from .element import Element, Html, Head, Body, Title, Meta, Link
 
-__all__ = ['Page']
+__all__ = ["Page"]
 
 
 class Page:
@@ -29,8 +29,12 @@ class Page:
         else:
             self.root = Html(Head(), Body(root_element))
 
-        self.head = next((child for child in self.root.children if isinstance(child, Head)), None)
-        self.body = next((child for child in self.root.children if isinstance(child, Body)), None)
+        self.head = next(
+            (child for child in self.root.children if isinstance(child, Head)), None
+        )
+        self.body = next(
+            (child for child in self.root.children if isinstance(child, Body)), None
+        )
 
     def add_to_head(self, element: Union[Title, Meta, Link]) -> None:
         if not self.head:
@@ -101,13 +105,15 @@ class Page:
         return None
 
     def dispatch_info(
-            self,
-            title: Optional[str] = None,
-            description: Optional[str] = None,
-            url: Optional[str] = None,
-            image: Optional[str] = None,
-            site_name: Optional[str] = None,
-            twitter_card: Optional[Literal['summary', 'summary_large_image', 'app', 'player']] = 'summary'
+        self,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        url: Optional[str] = None,
+        image: Optional[str] = None,
+        site_name: Optional[str] = None,
+        twitter_card: Optional[
+            Literal["summary", "summary_large_image", "app", "player"]
+        ] = "summary",
     ) -> None:
         """
         Adds or updates basic metadata, OGP, and Twitter Card meta tags in the head section.
@@ -127,23 +133,25 @@ class Page:
         """
         if title:
             self._set_or_update_element(Title(title), element_type=Title)
-            self._set_or_update_meta('og:title', title)
-            self._set_or_update_meta('twitter:title', title)
+            self._set_or_update_meta("og:title", title)
+            self._set_or_update_meta("twitter:title", title)
         if description:
-            self._set_or_update_meta('description', description)
-            self._set_or_update_meta('og:description', description)
-            self._set_or_update_meta('twitter:description', description)
+            self._set_or_update_meta("description", description)
+            self._set_or_update_meta("og:description", description)
+            self._set_or_update_meta("twitter:description", description)
         if url:
-            self._set_or_update_meta('og:url', url)
+            self._set_or_update_meta("og:url", url)
         if image:
-            self._set_or_update_meta('og:image', image)
-            self._set_or_update_meta('twitter:image', image)
+            self._set_or_update_meta("og:image", image)
+            self._set_or_update_meta("twitter:image", image)
         if site_name:
-            self._set_or_update_meta('og:site_name', site_name)
+            self._set_or_update_meta("og:site_name", site_name)
         if twitter_card:
-            self._set_or_update_meta('twitter:card', twitter_card)
+            self._set_or_update_meta("twitter:card", twitter_card)
 
-    def _set_or_update_element(self, element: Union[Title, Meta, Link], element_type: Optional[type] = None) -> None:
+    def _set_or_update_element(
+        self, element: Union[Title, Meta, Link], element_type: Optional[type] = None
+    ) -> None:
         """
         Helper to set or update an element in the head section.
 
@@ -153,8 +161,12 @@ class Page:
         :type element_type: Optional[type]
         """
         existing_element = next(
-            (child for child in self.head.children if isinstance(child, element_type or type(element))),
-            None
+            (
+                child
+                for child in self.head.children
+                if isinstance(child, element_type or type(element))
+            ),
+            None,
         )
         if existing_element:
             existing_element.children = element.children  # Update content
@@ -171,14 +183,33 @@ class Page:
         :type content: str
         """
         existing_meta = next(
-            (child for child in self.head.children if isinstance(child, Meta) and child.attributes.get('name') == name or child.attributes.get('property') == name),
-            None
+            (
+                child
+                for child in self.head.children
+                if isinstance(child, Meta)
+                and child.attributes.get("name") == name
+                or child.attributes.get("property") == name
+            ),
+            None,
         )
         if existing_meta:
-            existing_meta.attributes['content'] = content  # Update content if meta tag exists
+            existing_meta.attributes["content"] = (
+                content  # Update content if meta tag exists
+            )
         else:
             # Add new meta tag if not exists
-            self.add_to_head(Meta(attributes={'name' if 'og:' not in name and 'twitter:' not in name else 'property': name, 'content': content}))
+            self.add_to_head(
+                Meta(
+                    attributes={
+                        (
+                            "name"
+                            if "og:" not in name and "twitter:" not in name
+                            else "property"
+                        ): name,
+                        "content": content,
+                    }
+                )
+            )
 
     def render(self) -> str:
         return self.root.render()

@@ -14,32 +14,37 @@ from typing import Optional, Dict, List, Tuple, Union
 class SecureHeadersOptions:
     content_security_policy: Optional[str] = "default-src 'self'"
     content_security_policy_report_only: Optional[str] = None
-    x_content_type_options: Optional[str] = 'nosniff'
-    x_frame_options: Optional[str] = 'SAMEORIGIN'
-    strict_transport_security: Optional[str] = 'max-age=63072000; includeSubDomains; preload'
-    referrer_policy: Optional[str] = 'no-referrer'
-    x_permitted_cross_domain_policies: Optional[str] = 'none'
-    x_xss_protection: Optional[str] = '0'
-    cross_origin_opener_policy: Optional[str] = 'same-origin'
-    cross_origin_embedder_policy: Optional[str] = 'require-corp'
-    cross_origin_resource_policy: Optional[str] = 'same-origin'
-    origin_agent_cluster: Optional[str] = '?1'
+    x_content_type_options: Optional[str] = "nosniff"
+    x_frame_options: Optional[str] = "SAMEORIGIN"
+    strict_transport_security: Optional[str] = (
+        "max-age=63072000; includeSubDomains; preload"
+    )
+    referrer_policy: Optional[str] = "no-referrer"
+    x_permitted_cross_domain_policies: Optional[str] = "none"
+    x_xss_protection: Optional[str] = "0"
+    cross_origin_opener_policy: Optional[str] = "same-origin"
+    cross_origin_embedder_policy: Optional[str] = "require-corp"
+    cross_origin_resource_policy: Optional[str] = "same-origin"
+    origin_agent_cluster: Optional[str] = "?1"
     remove_server_header: bool = True
     permissions_policy: Optional[Dict[str, Union[str, List[str]]]] = None
 
 
 HEADERS_MAP: Dict[str, Tuple[str, str]] = {
-    'content_security_policy': ('Content-Security-Policy', "default-src 'self'"),
-    'x_content_type_options': ('X-Content-Type-Options', 'nosniff'),
-    'x_frame_options': ('X-Frame-Options', 'SAMEORIGIN'),
-    'strict_transport_security': ('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'),
-    'referrer_policy': ('Referrer-Policy', 'no-referrer'),
-    'x_permitted_cross_domain_policies': ('X-Permitted-Cross-Domain-Policies', 'none'),
-    'x_xss_protection': ('X-XSS-Protection', '0'),
-    'cross_origin_opener_policy': ('Cross-Origin-Opener-Policy', 'same-origin'),
-    'cross_origin_embedder_policy': ('Cross-Origin-Embedder-Policy', 'require-corp'),
-    'cross_origin_resource_policy': ('Cross-Origin-Resource-Policy', 'same-origin'),
-    'origin_agent_cluster': ('Origin-Agent-Cluster', '?1'),
+    "content_security_policy": ("Content-Security-Policy", "default-src 'self'"),
+    "x_content_type_options": ("X-Content-Type-Options", "nosniff"),
+    "x_frame_options": ("X-Frame-Options", "SAMEORIGIN"),
+    "strict_transport_security": (
+        "Strict-Transport-Security",
+        "max-age=63072000; includeSubDomains; preload",
+    ),
+    "referrer_policy": ("Referrer-Policy", "no-referrer"),
+    "x_permitted_cross_domain_policies": ("X-Permitted-Cross-Domain-Policies", "none"),
+    "x_xss_protection": ("X-XSS-Protection", "0"),
+    "cross_origin_opener_policy": ("Cross-Origin-Opener-Policy", "same-origin"),
+    "cross_origin_embedder_policy": ("Cross-Origin-Embedder-Policy", "require-corp"),
+    "cross_origin_resource_policy": ("Cross-Origin-Resource-Policy", "same-origin"),
+    "origin_agent_cluster": ("Origin-Agent-Cluster", "?1"),
 }
 
 
@@ -72,7 +77,7 @@ class SecureHeadersMiddleware(Middleware):
             response.headers[header_name] = header_value
 
         if self.options.remove_server_header:
-            response.headers.pop('Server', None)
+            response.headers.pop("Server", None)
 
     def _get_headers_to_set(self) -> Dict[str, str]:
         """
@@ -92,16 +97,22 @@ class SecureHeadersMiddleware(Middleware):
                 headers[header_name] = default_value
 
         if self.options.content_security_policy_report_only:
-            headers['Content-Security-Policy-Report-Only'] = self.options.content_security_policy_report_only
+            headers["Content-Security-Policy-Report-Only"] = (
+                self.options.content_security_policy_report_only
+            )
 
         if self.options.permissions_policy:
-            permissions_policy_header = self._format_permissions_policy(self.options.permissions_policy)
+            permissions_policy_header = self._format_permissions_policy(
+                self.options.permissions_policy
+            )
             if permissions_policy_header:
-                headers['Permissions-Policy'] = permissions_policy_header
+                headers["Permissions-Policy"] = permissions_policy_header
 
         return headers
 
-    def _format_permissions_policy(self, policy: Dict[str, Union[str, List[str]]]) -> str:
+    def _format_permissions_policy(
+        self, policy: Dict[str, Union[str, List[str]]]
+    ) -> str:
         """
         Format the Permissions-Policy header value.
 
@@ -113,12 +124,12 @@ class SecureHeadersMiddleware(Middleware):
         directives = []
         for feature, value in policy.items():
             if isinstance(value, bool):
-                directive_value = '*' if value else '()'
+                directive_value = "*" if value else "()"
             elif isinstance(value, str):
                 directive_value = value
             elif isinstance(value, list):
-                directive_value = ' '.join(value)
+                directive_value = " ".join(value)
             else:
                 continue
             directives.append(f"{feature}={directive_value}")
-        return ', '.join(directives)
+        return ", ".join(directives)

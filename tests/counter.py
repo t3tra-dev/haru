@@ -4,12 +4,12 @@ from haru.ui import Page
 
 view = Page("Hello, World!")
 
-view.dispatch_info(title='Document Title')
+view.dispatch_info(title="Document Title")
 
 app = Haru(__name__)
 
 
-@app.route('/')
+@app.route("/")
 def index(req: Request):
     return view
 

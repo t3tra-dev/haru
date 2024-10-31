@@ -12,11 +12,11 @@ from haru.request import Request
 from haru.response import Response
 from haru.middleware import Middleware
 
-SupportedEncodings = Literal['gzip', 'deflate']
+SupportedEncodings = Literal["gzip", "deflate"]
 
 COMPRESSIBLE_CONTENT_TYPE_REGEX = re.compile(
-    r'^(text/.*)|(application/(json|javascript|xml|xhtml\+xml|x-www-form-urlencoded))$',
-    re.IGNORECASE
+    r"^(text/.*)|(application/(json|javascript|xml|xhtml\+xml|x-www-form-urlencoded))$",
+    re.IGNORECASE,
 )
 
 
@@ -26,7 +26,9 @@ class CompressMiddleware(Middleware):
     Supports gzip and deflate encoding methods.
     """
 
-    def __init__(self, encoding: Optional[SupportedEncodings] = None, threshold: int = 1024):
+    def __init__(
+        self, encoding: Optional[SupportedEncodings] = None, threshold: int = 1024
+    ):
         """
         Initialize the CompressMiddleware.
 
@@ -48,31 +50,31 @@ class CompressMiddleware(Middleware):
         :type response: Response
         """
         # Check if response is already encoded
-        if 'Content-Encoding' in response.headers:
+        if "Content-Encoding" in response.headers:
             return
 
         # Check if request method is HEAD
-        if request.method.upper() == 'HEAD':
+        if request.method.upper() == "HEAD":
             return
 
         # Get Content-Length
-        content_length = response.headers.get('Content-Length')
+        content_length = response.headers.get("Content-Length")
         if content_length is not None and int(content_length) < self.threshold:
             return
 
         # Check if content type is compressible
-        content_type = response.headers.get('Content-Type', '')
+        content_type = response.headers.get("Content-Type", "")
         if not self._is_compressible_content_type(content_type):
             return
 
         # Check Cache-Control header for 'no-transform'
-        cache_control = response.headers.get('Cache-Control', '')
-        if 'no-transform' in cache_control.lower():
+        cache_control = response.headers.get("Cache-Control", "")
+        if "no-transform" in cache_control.lower():
             return
 
         # Determine accepted encodings
-        accept_encoding = request.headers.get('Accept-Encoding', '')
-        supported_encodings = ['gzip', 'deflate']
+        accept_encoding = request.headers.get("Accept-Encoding", "")
+        supported_encodings = ["gzip", "deflate"]
         encoding = self.encoding
 
         if not encoding:
@@ -92,11 +94,11 @@ class CompressMiddleware(Middleware):
 
         compressed_content = self._compress_content(original_content, encoding)
         response.content = compressed_content
-        response.headers['Content-Encoding'] = encoding
-        response.headers['Content-Length'] = str(len(compressed_content))
+        response.headers["Content-Encoding"] = encoding
+        response.headers["Content-Length"] = str(len(compressed_content))
 
         # Remove ETag header if present (since content has changed)
-        response.headers.pop('ETag', None)
+        response.headers.pop("ETag", None)
 
     def _is_compressible_content_type(self, content_type: str) -> bool:
         """
@@ -122,11 +124,11 @@ class CompressMiddleware(Middleware):
         if isinstance(content, bytes):
             return content
         elif isinstance(content, str):
-            return content.encode(response.charset or 'utf-8')
-        elif hasattr(content, '__iter__'):
+            return content.encode(response.charset or "utf-8")
+        elif hasattr(content, "__iter__"):
             # Handle iterable content
-            return b''.join(content)
-        elif hasattr(content, '__aiter__'):
+            return b"".join(content)
+        elif hasattr(content, "__aiter__"):
             # Handle asynchronous iterable content
             data = bytearray()
             async for chunk in content:
@@ -146,9 +148,9 @@ class CompressMiddleware(Middleware):
         :return: The compressed content.
         :rtype: bytes
         """
-        if encoding == 'gzip':
+        if encoding == "gzip":
             return gzip.compress(content)
-        elif encoding == 'deflate':
+        elif encoding == "deflate":
             return zlib.compress(content)
         else:
             return content  # This should not happen due to prior checks

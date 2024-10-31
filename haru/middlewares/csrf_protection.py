@@ -25,7 +25,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.exceptions import Forbidden
 
-__all__ = ['CSRFProtectionMiddleware']
+__all__ = ["CSRFProtectionMiddleware"]
 
 
 class CSRFProtectionMiddleware(Middleware):
@@ -41,7 +41,9 @@ class CSRFProtectionMiddleware(Middleware):
     :type error_message: str
     """
 
-    def __init__(self, allowed_origins: List[str], error_message: str = 'CSRF validation failed.'):
+    def __init__(
+        self, allowed_origins: List[str], error_message: str = "CSRF validation failed."
+    ):
         """
         Initialize the `CSRFProtectionMiddleware` with a list of allowed origins and an optional error message.
 
@@ -64,7 +66,7 @@ class CSRFProtectionMiddleware(Middleware):
 
         :raises Forbidden: If the 'Origin' header is missing or does not match any allowed origins.
         """
-        origin = request.headers.get('Origin')
+        origin = request.headers.get("Origin")
         if not origin:
             # If 'Origin' header is missing, reject the request
             raise Forbidden(description=self.error_message)

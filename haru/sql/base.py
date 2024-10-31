@@ -11,7 +11,7 @@ Base = declarative_base()
 engine_dict: Dict[str, Engine] = {}
 
 
-def get_engine(db_url: str, alias: Optional[str] = 'default', **kwargs) -> Engine:
+def get_engine(db_url: str, alias: Optional[str] = "default", **kwargs) -> Engine:
     """
     Create or retrieve an SQLAlchemy engine.
 

@@ -17,7 +17,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.exceptions import RequestEntityTooLarge
 
-__all__ = ['BodyLimitMiddleware']
+__all__ = ["BodyLimitMiddleware"]
 
 
 class BodyLimitMiddleware(Middleware):
@@ -56,13 +56,13 @@ class BodyLimitMiddleware(Middleware):
 
         :raises RequestEntityTooLarge: If the request body exceeds the specified size limit.
         """
-        content_length = request.headers.get('Content-Length')
+        content_length = request.headers.get("Content-Length")
         if content_length is not None:
             try:
                 content_length = int(content_length)
                 if content_length > self.max_size:
                     raise RequestEntityTooLarge(
-                        description=f'Request body too large. Maximum allowed is {self.max_size} bytes.'
+                        description=f"Request body too large. Maximum allowed is {self.max_size} bytes."
                     )
             except ValueError:
                 # Invalid Content-Length header
@@ -72,6 +72,6 @@ class BodyLimitMiddleware(Middleware):
             body = request.get_body(max_size=self.max_size)
             if body is None:
                 raise RequestEntityTooLarge(
-                    description=f'Request body too large. Maximum allowed is {self.max_size} bytes.'
+                    description=f"Request body too large. Maximum allowed is {self.max_size} bytes."
                 )
             request.body = body

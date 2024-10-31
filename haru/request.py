@@ -6,7 +6,7 @@ It includes the `Request` class, which encapsulates details about an incoming HT
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 
-__all__ = ['Request']
+__all__ = ["Request"]
 
 
 class Request:
@@ -26,14 +26,21 @@ class Request:
     :type client_address: str
     """
 
-    def __init__(self, method: str, path: str, headers: Dict[str, str], body: bytes = b'', client_address: Optional[str] = None):
+    def __init__(
+        self,
+        method: str,
+        path: str,
+        headers: Dict[str, str],
+        body: bytes = b"",
+        client_address: Optional[str] = None,
+    ):
         self.method: str = method
         self.path: str = path
         self.headers: Dict[str, str] = headers
         self.body: bytes = body
         self.remote_addr: str = client_address
-        self.user_agent: str = headers.get('user-agent', '')
-        self.host: str = headers.get('host', '')
+        self.user_agent: str = headers.get("user-agent", "")
+        self.host: str = headers.get("host", "")
         self.cookies: Dict[str, str] = self._parse_cookies()
         self.query_string: str = self._parse_query_string()
         self.args: Dict[str, str] = self._parse_query_params()
@@ -49,12 +56,12 @@ class Request:
         :return: A dictionary of cookies sent with the request.
         :rtype: Dict[str, str]
         """
-        cookie_header = self.headers.get('cookie', '')
+        cookie_header = self.headers.get("cookie", "")
         cookies = {}
         if cookie_header:
-            for cookie in cookie_header.split(';'):
-                if '=' in cookie:
-                    key, value = cookie.strip().split('=', 1)
+            for cookie in cookie_header.split(";"):
+                if "=" in cookie:
+                    key, value = cookie.strip().split("=", 1)
                     cookies[key] = value
         return cookies
 
@@ -85,9 +92,9 @@ class Request:
         :return: A dictionary of form data.
         :rtype: Dict[str, Any]
         """
-        content_type = self.headers.get('content-type', '')
-        if 'application/x-www-form-urlencoded' in content_type:
-            body_str = self.body.decode('utf-8')
+        content_type = self.headers.get("content-type", "")
+        if "application/x-www-form-urlencoded" in content_type:
+            body_str = self.body.decode("utf-8")
             return {k: v[0] for k, v in parse_qs(body_str).items()}
         else:
             return {}
@@ -99,10 +106,11 @@ class Request:
         :return: A dictionary representing the JSON data, or None if parsing fails.
         :rtype: Optional[Dict[str, Any]]
         """
-        if 'application/json' in self.headers.get('content-type', ''):
+        if "application/json" in self.headers.get("content-type", ""):
             import json
+
             try:
-                return json.loads(self.body.decode('utf-8'))
+                return json.loads(self.body.decode("utf-8"))
             except (ValueError, UnicodeDecodeError):
                 return None
         return None

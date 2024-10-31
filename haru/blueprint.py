@@ -8,9 +8,9 @@ from typing import Callable, List, Optional, Type, TypeVar, Any
 from .router import Router
 from .middleware import Middleware
 
-__all__ = ['Blueprint']
+__all__ = ["Blueprint"]
 
-MiddlewareType = TypeVar('MiddlewareType', bound=Middleware)
+MiddlewareType = TypeVar("MiddlewareType", bound=Middleware)
 
 
 class Blueprint:
@@ -55,10 +55,12 @@ class Blueprint:
         :return: A decorator to wrap the route handler function.
         :rtype: Callable[[Callable], Callable]
         """
+
         def decorator(func: Callable) -> Callable:
             full_path = self._full_path(path)
             self.router.add_route(full_path, func, methods, blueprint=self)
             return func
+
         return decorator
 
     def add_middleware(self, middleware: Middleware) -> None:
@@ -81,7 +83,9 @@ class Blueprint:
         if middleware in self.middleware:
             self.middleware.remove(middleware)
 
-    def get_middleware(self, middleware_class: Type[MiddlewareType]) -> Optional[MiddlewareType]:
+    def get_middleware(
+        self, middleware_class: Type[MiddlewareType]
+    ) -> Optional[MiddlewareType]:
         """
         Retrieve middleware by its class from the blueprint.
 
@@ -116,4 +120,6 @@ class Blueprint:
         :type app: Haru
         """
         for route in self.router.routes:
-            app.router.add_route(route.path, route.handler, route.methods, blueprint=self)
+            app.router.add_route(
+                route.path, route.handler, route.methods, blueprint=self
+            )

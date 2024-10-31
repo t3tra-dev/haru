@@ -6,16 +6,16 @@ from sqlalchemy import types as sql_types
 from typing import Any, Optional
 
 __all__ = [
-    'Integer',
-    'String',
-    'Float',
-    'Boolean',
-    'DateTime',
-    'Date',
-    'Time',
-    'Text',
-    'LargeBinary',
-    'JSON',
+    "Integer",
+    "String",
+    "Float",
+    "Boolean",
+    "DateTime",
+    "Date",
+    "Time",
+    "Text",
+    "LargeBinary",
+    "JSON",
 ]
 
 
@@ -114,5 +114,10 @@ class JSON(sql_types.JSON):
     JSON data type.
     """
 
-    def __init__(self, none_as_null: bool = False, astext_type: Optional[Any] = None, **kwargs: Any):
+    def __init__(
+        self,
+        none_as_null: bool = False,
+        astext_type: Optional[Any] = None,
+        **kwargs: Any,
+    ):
         super().__init__(none_as_null=none_as_null, astext_type=astext_type, **kwargs)

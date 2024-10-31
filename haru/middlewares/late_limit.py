@@ -11,7 +11,7 @@ from haru.request import Request
 from haru.response import Response
 from haru.exceptions import TooManyRequests
 
-__all__ = ['RateLimitMiddleware']
+__all__ = ["RateLimitMiddleware"]
 
 
 class RateLimitMiddleware(Middleware):
@@ -37,7 +37,7 @@ class RateLimitMiddleware(Middleware):
         limit: int,
         period: int,
         key_func: Optional[Callable[[Request], str]] = None,
-        error_message: str = 'Rate limit exceeded. Please try again later.'
+        error_message: str = "Rate limit exceeded. Please try again later.",
     ):
         """
         Initialize the RateLimitMiddleware with specified options.

@@ -3,6 +3,7 @@ This module defines the `Response` class, which represents an HTTP response in t
 The `Response` class is responsible for managing the response content, headers, status code,
 and other properties that are sent back to the client after processing an HTTP request.
 """
+
 import os
 import json
 from typing import Any, Dict, Optional
@@ -10,7 +11,7 @@ from typing import Any, Dict, Optional
 from haru import __version__
 from haru.ui.page import Page
 
-__all__ = ['Response', 'redirect']
+__all__ = ["Response", "redirect"]
 
 
 class Response:
@@ -40,21 +41,23 @@ class Response:
             self.content_type = self._infer_content_type()
 
         # Set Content-Type header
-        self.headers.setdefault('Content-Type', self.content_type)
+        self.headers.setdefault("Content-Type", self.content_type)
 
         # Set X-Powered-By header
-        self.headers.setdefault('X-Powered-By', 'Haru')
+        self.headers.setdefault("X-Powered-By", "Haru")
 
         # Set Server header
-        self.headers.setdefault('Server', f'Haru/{__version__}')
+        self.headers.setdefault("Server", f"Haru/{__version__}")
 
         # Set Content-Disposition header for file downloads
         if self.as_attachment:
             if self.filename:
                 attachment_filename = os.path.basename(self.filename)
             else:
-                attachment_filename = 'download'
-            self.headers['Content-Disposition'] = f'attachment; filename="{attachment_filename}"'
+                attachment_filename = "download"
+            self.headers["Content-Disposition"] = (
+                f'attachment; filename="{attachment_filename}"'
+            )
 
     def _infer_content_type(self) -> str:
         """
@@ -64,15 +67,15 @@ class Response:
         :rtype: str
         """
         if isinstance(self.content, str):
-            return 'text/plain; charset=utf-8'
+            return "text/plain; charset=utf-8"
         elif isinstance(self.content, bytes):
-            return 'application/octet-stream'
+            return "application/octet-stream"
         elif isinstance(self.content, (dict, list)):
-            return 'application/json'
+            return "application/json"
         elif isinstance(self.content, Page):
-            return 'text/html; charset=utf-8'
+            return "text/html; charset=utf-8"
         else:
-            return 'application/octet-stream'
+            return "application/octet-stream"
 
     def get_content(self) -> bytes:
         """
@@ -85,14 +88,14 @@ class Response:
         if isinstance(self.content, bytes):
             return self.content
         elif isinstance(self.content, str):
-            return self.content.encode('utf-8')
+            return self.content.encode("utf-8")
         elif isinstance(self.content, (dict, list)):
-            return json.dumps(self.content).encode('utf-8')
+            return json.dumps(self.content).encode("utf-8")
         elif isinstance(self.content, Page):
             html_content = self.content.render()
-            return html_content.encode('utf-8')
+            return html_content.encode("utf-8")
         else:
-            return str(self.content).encode('utf-8')
+            return str(self.content).encode("utf-8")
 
     def iter_content(self):
         """
@@ -120,8 +123,4 @@ def redirect(location: str, status_code: int = 302) -> Response:
     :return: A Response object configured to redirect the client.
     :rtype: Response
     """
-    return Response(
-        content='',
-        status_code=status_code,
-        headers={'Location': location}
-    )
+    return Response(content="", status_code=status_code, headers={"Location": location})

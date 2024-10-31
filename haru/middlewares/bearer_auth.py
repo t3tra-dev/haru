@@ -18,7 +18,7 @@ from haru.middleware import Middleware
 from haru.request import Request
 from haru.exceptions import Unauthorized
 
-__all__ = ['BearerAuthMiddleware']
+__all__ = ["BearerAuthMiddleware"]
 
 
 class BearerAuthMiddleware(Middleware):
@@ -55,11 +55,11 @@ class BearerAuthMiddleware(Middleware):
 
         :raises Unauthorized: If the 'Authorization' header is missing, malformed, or contains an invalid token.
         """
-        auth_header = request.headers.get('Authorization')
-        if auth_header is None or not auth_header.startswith('Bearer '):
+        auth_header = request.headers.get("Authorization")
+        if auth_header is None or not auth_header.startswith("Bearer "):
             self._unauthorized()
         else:
-            token = auth_header.split(' ', 1)[1]
+            token = auth_header.split(" ", 1)[1]
             if token not in self.tokens:
                 self._unauthorized()
 
@@ -67,4 +67,4 @@ class BearerAuthMiddleware(Middleware):
         """
         Helper method to raise an Unauthorized exception when the token is missing or invalid.
         """
-        raise Unauthorized(description='Invalid or missing authentication token.')
+        raise Unauthorized(description="Invalid or missing authentication token.")

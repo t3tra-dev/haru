@@ -9,21 +9,32 @@ The Python framework for web applications.
 
 """
 
-__title__ = 'haru'
-__author__ = 't3tra'
-__license__ = 'MIT'
-__copyright__ = 'Copyright 2024-present t3tra'
-__version__ = '0.0.1a4'
+__title__ = "haru"
+__author__ = "t3tra"
+__license__ = "MIT"
+__copyright__ = "Copyright 2024-present t3tra"
+__version__ = "0.0.1a4"
 
-__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 import logging
 from typing import NamedTuple, Literal
 
 __all__ = [
-    'exceptions', 'middlewares', 'ui', 'webapi', 'Haru', 'Blueprint', 'Request',
-    'FileWrapper', 'BytesWrapper', 'Response', 'redirect',
-    'WebSocketServerProtocol', 'WebSocketServer', 'upgrade_websocket'
+    "exceptions",
+    "middlewares",
+    "ui",
+    "webapi",
+    "Haru",
+    "Blueprint",
+    "Request",
+    "FileWrapper",
+    "BytesWrapper",
+    "Response",
+    "redirect",
+    "WebSocketServerProtocol",
+    "WebSocketServer",
+    "upgrade_websocket",
 ]
 
 from . import exceptions
@@ -46,7 +57,9 @@ class VersionInfo(NamedTuple):
     serial: int
 
 
-version_info: VersionInfo = VersionInfo(major=0, minor=0, micro=1, releaselevel='alpha', serial=4)
+version_info: VersionInfo = VersionInfo(
+    major=0, minor=0, micro=1, releaselevel="alpha", serial=4
+)
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
