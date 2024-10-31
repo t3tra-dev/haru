@@ -14,7 +14,7 @@ def user(req: Request):
 
 
 @app.errorhandler(404)
-def not_found(req: Request):
+def not_found(req: Request, exc: Exception):
     return 'Not found.', 404
 
 
