@@ -11,5 +11,5 @@ source .test-venv/bin/activate
 pip install -e .
 clear
 cd tests
-python main.py
+python counter.py
 rm -rf .test-venv
