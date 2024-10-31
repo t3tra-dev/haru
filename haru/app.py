@@ -599,7 +599,11 @@ class Haru:
         for path, directory, ignore in self.static_routes:
             self._register_static_route(path, directory, ignore)
 
-        return self._asgi_app
+        # Return a callable that accepts (scope, receive, send)
+        async def app(scope: Dict[str, Any], receive: Callable, send: Callable):
+            await self._asgi_app(scope, receive, send)
+
+        return app
 
     async def _call_route_handler(
         self, handler: Callable, request: Request
@@ -808,7 +812,7 @@ class Haru:
         """
 
         async def static_file_handler(request: Request) -> Response:
-            file_path = request.path[len(path_prefix) :]
+            file_path = request.path[len(path_prefix):]
             file_full_path = os.path.join(directory, file_path.lstrip("/"))
 
             if not os.path.abspath(file_full_path).startswith(

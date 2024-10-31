@@ -6,7 +6,7 @@ from haru.middlewares import LoggerMiddleware
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-app = Haru(__name__)
+app = Haru(__name__, asgi=True)
 app.add_middleware(LoggerMiddleware(logger=logger))
 
 
@@ -25,4 +25,4 @@ def not_found(req: Request, exc: Exception):
     return "Not found.", 404
 
 
-app.run()
+asgi_app = app.asgi_app()
