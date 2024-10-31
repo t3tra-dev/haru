@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, List
 from .element import Element, Html, Head, Body, Title, Meta, Link
 
 __all__ = ['Page']
@@ -38,6 +38,62 @@ class Page:
             self.body = Body()
             self.root.children.append(self.body)
         self.body.children.append(element)
+
+    def query_selector(self, selector: str) -> Optional[Element]:
+        """
+        Returns the first element that matches the CSS selector in the page.
+
+        :param selector: The CSS selector to match.
+        :return: The first matching Element, or None if not found.
+        """
+        return self.root.query_selector(selector)
+
+    def query_selector_all(self, selector: str) -> List[Element]:
+        """
+        Returns all elements that match the CSS selector in the page.
+
+        :param selector: The CSS selector to match.
+        :return: A list of matching Elements.
+        """
+        return self.root.query_selector_all(selector)
+
+    def get_element_by_id(self, element_id: str) -> Optional[Element]:
+        """
+        Returns the first element with the specified ID in the page.
+
+        :param element_id: The ID to search for.
+        :return: The Element with the matching ID, or None if not found.
+        """
+        return self.root.get_element_by_id(element_id)
+
+    def get_elements_by_class_name(self, class_name: str) -> List[Element]:
+        """
+        Returns a list of elements with the specified class name in the page.
+
+        :param class_name: The class name to search for.
+        :return: A list of Elements with the matching class name.
+        """
+        return self.root.get_elements_by_class_name(class_name)
+
+    # Property to get the child elements of the root
+    @property
+    def children(self) -> List[Element]:
+        """
+        Returns the child elements of the root element.
+
+        :return: A list of child Elements.
+        """
+        return self.root.child_elements
+
+    # Property to get the parent (None for Page)
+    @property
+    def parent(self) -> None:
+        """
+        Returns None as the page does not have a parent element.
+
+        :return: None
+        """
+        return None
 
     def dispatch_info(
             self,

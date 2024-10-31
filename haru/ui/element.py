@@ -29,108 +29,171 @@ class Element:
     :param tag: The HTML tag name for the element (e.g., 'div', 'button').
     :type tag: str
     :param args: Children elements or text content for the HTML element.
-    :type args: Union[str, 'Element']
+    :type args: Union[str, Element]
     :param attributes: A dictionary of HTML attributes for the element.
     :type attributes: Optional[Dict[str, Union[str, bool]]]
     :param raw: Whether to render the content as raw HTML without escaping.
     :type raw: bool
     """
-    def __init__(self, tag: str, *args: Union[str, Element], attributes: Optional[Dict[str, Union[str, bool]]] = None, raw: bool = False) -> None:
+    def __init__(
+        self,
+        tag: str,
+        *args: Union[str, Element],
+        attributes: Optional[dict[str, Union[str, bool]]] = None,
+        raw: bool = False,
+    ) -> None:
         self.tag = tag
-        self.children: List[Union[str, Element]] = list(args)
         self.attributes = attributes if attributes else {}
         self.raw = raw
+        self.children: List[Union[str, Element]] = list(args)
         self.parent: Optional[Element] = None
 
+        # Set parent for child elements
         for child in self.children:
             if isinstance(child, Element):
                 child.parent = self
 
-    @property
-    def children_elements(self) -> List[Element]:
-        """Retrieve only Element-type children, excluding strings."""
-        return [child for child in self.children if isinstance(child, Element)]
+    def render(self) -> str:
+        # Render attributes, handling boolean attributes
+        attrs = ' '.join(
+            f'{key}' if isinstance(value, bool) and value else f'{key}="{value}"'
+            for key, value in self.attributes.items()
+            if not (isinstance(value, bool) and not value)
+        )
+        opening_tag = f"<{self.tag} {attrs}>" if attrs else f"<{self.tag}>"
+        closing_tag = f"</{self.tag}>"
 
-    def append_child(self, child: Union[Element, str]) -> None:
-        """Add a child element."""
-        self.children.append(child)
+        # Render child elements
+        content = ''.join(
+            [
+                child.render() if isinstance(child, Element) else (child if self.raw else html.escape(child))
+                for child in self.children
+            ]
+        )
+        return f"{opening_tag}{content}{closing_tag}"
+
+    def append_child(self, child: Union[str, Element]) -> None:
+        """
+        Appends a child element or text to the current element.
+
+        :param child: The child element or text to append.
+        """
         if isinstance(child, Element):
             child.parent = self
+        self.children.append(child)
 
-    def remove_child(self, child: Union[Element, str]) -> None:
-        """Remove a child element."""
-        if child in self.children:
-            self.children.remove(child)
-            if isinstance(child, Element):
-                child.parent = None
+    def remove_child(self, child: Union[str, Element]) -> None:
+        """
+        Removes a child element or text from the current element.
+
+        :param child: The child element or text to remove.
+        """
+        self.children.remove(child)
+        if isinstance(child, Element):
+            child.parent = None
 
     def get_element_by_id(self, element_id: str) -> Optional[Element]:
-        """Find the first element with a matching id attribute."""
-        if self.attributes.get("id") == element_id:
+        """
+        Returns the first element with the specified ID.
+
+        :param element_id: The ID to search for.
+        :return: The Element with the matching ID, or None if not found.
+        """
+        if self.attributes.get('id') == element_id:
             return self
-        for child in self.children_elements:
+        for child in self._child_elements():
             result = child.get_element_by_id(element_id)
             if result:
                 return result
         return None
 
     def get_elements_by_class_name(self, class_name: str) -> List[Element]:
-        """Find all elements with a matching class name."""
+        """
+        Returns a list of elements with the specified class name.
+
+        :param class_name: The class name to search for.
+        :return: A list of Elements with the matching class name.
+        """
         elements = []
-        if "class" in self.attributes and class_name in self.attributes["class"].split():
+        classes = self.attributes.get('class', '').split()
+        if class_name in classes:
             elements.append(self)
-        for child in self.children_elements:
+        for child in self._child_elements():
             elements.extend(child.get_elements_by_class_name(class_name))
         return elements
 
     def query_selector(self, selector: str) -> Optional[Element]:
-        """Select the first element that matches the CSS-like selector (only supports basic selectors)."""
-        if selector.startswith("#"):
-            return self.get_element_by_id(selector[1:])
-        elif selector.startswith("."):
-            elements = self.get_elements_by_class_name(selector[1:])
-            return elements[0] if elements else None
-        elif selector == self.tag:
-            return self
-        for child in self.children_elements:
-            result = child.query_selector(selector)
-            if result:
-                return result
-        return None
+        """
+        Returns the first element that matches the CSS selector.
+
+        :param selector: The CSS selector to match.
+        :return: The first matching Element, or None if not found.
+        """
+        return self._query_selector(selector, first_only=True)
 
     def query_selector_all(self, selector: str) -> List[Element]:
-        """Select all elements that match the CSS-like selector (only supports basic selectors)."""
-        if selector.startswith("."):
-            return self.get_elements_by_class_name(selector[1:])
-        elif selector.startswith("#"):
-            result = self.get_element_by_id(selector[1:])
-            return [result] if result else []
-        elif selector == self.tag:
-            elements = [self]
+        """
+        Returns all elements that match the CSS selector.
+
+        :param selector: The CSS selector to match.
+        :return: A list of matching Elements.
+        """
+        return self._query_selector(selector, first_only=False)
+
+    def _query_selector(self, selector: str, first_only: bool) -> Union[Optional[Element], List[Element]]:
+        # Simple selector parsing (supports tag, #id, .class)
+        elements = []
+        selector = selector.strip()
+        if selector.startswith('#'):
+            element = self.get_element_by_id(selector[1:])
+            if element:
+                return element if first_only else [element]
+            else:
+                return None if first_only else []
+        elif selector.startswith('.'):
+            elements = self.get_elements_by_class_name(selector[1:])
+            return elements[0] if first_only and elements else elements
         else:
-            elements = []
-        for child in self.children_elements:
-            elements.extend(child.query_selector_all(selector))
-        return elements
+            if self.tag == selector:
+                elements.append(self)
+                if first_only:
+                    return self
+            for child in self._child_elements():
+                result = child._query_selector(selector, first_only)
+                if result:
+                    if first_only:
+                        return result
+                    elif isinstance(result, list):
+                        elements.extend(result)
+            return elements if not first_only else (elements[0] if elements else None)
 
-    def render(self) -> str:
+    def _child_elements(self) -> List[Element]:
         """
-        Render the element and its children as an HTML string.
+        Returns a list of child elements (excluding text nodes).
 
-        :return: The rendered HTML string for the element.
-        :rtype: str
+        :return: A list of child Elements.
         """
-        attrs = ' '.join(
-            f'{key}' if isinstance(value, bool) and value else f'{key}="{value}"'
-            for key, value in self.attributes.items() if not (isinstance(value, bool) and not value)
-        )
-        opening_tag = f"<{self.tag} {attrs}>" if attrs else f"<{self.tag}>"
-        closing_tag = f"</{self.tag}>"
+        return [child for child in self.children if isinstance(child, Element)]
 
-        content = ''.join(
-            [child.render() if isinstance(child, Element) else (child if self.raw else html.escape(child)) for child in self.children]
-        )
-        return f"{opening_tag}{content}{closing_tag}"
+    # Property to get the parent element
+    @property
+    def parent_element(self) -> Optional[Element]:
+        """
+        Returns the parent element of the current element.
+
+        :return: The parent Element, or None if there is no parent.
+        """
+        return self.parent
+
+    # Property to get child elements (excluding text nodes)
+    @property
+    def child_elements(self) -> List[Element]:
+        """
+        Returns a list of child elements (excluding text nodes).
+
+        :return: A list of child Elements.
+        """
+        return self._child_elements()
 
 
 class SelfClosingElement(Element):
@@ -145,7 +208,8 @@ class SelfClosingElement(Element):
     def render(self) -> str:
         attrs = ' '.join(
             f'{key}' if isinstance(value, bool) and value else f'{key}="{value}"'
-            for key, value in self.attributes.items() if not (isinstance(value, bool) and not value)
+            for key, value in self.attributes.items()
+            if not (isinstance(value, bool) and not value)
         )
         return f"<{self.tag} {attrs} />" if attrs else f"<{self.tag} />"
 
