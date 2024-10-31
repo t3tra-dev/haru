@@ -3,11 +3,12 @@ This module defines the `Response` class, which represents an HTTP response in t
 The `Response` class is responsible for managing the response content, headers, status code,
 and other properties that are sent back to the client after processing an HTTP request.
 """
-from haru import __version__
-
-from typing import Any, Dict, Optional
 import os
 import json
+from typing import Any, Dict, Optional
+
+from haru import __version__
+from haru.ui.page import Page
 
 __all__ = ['Response', 'redirect']
 
@@ -68,22 +69,10 @@ class Response:
             return 'application/octet-stream'
         elif isinstance(self.content, (dict, list)):
             return 'application/json'
+        elif isinstance(self.content, Page):
+            return 'text/html; charset=utf-8'
         else:
             return 'application/octet-stream'
-
-    def iter_content(self):
-        """
-        Yield the response content in chunks. This method is useful for streaming large files
-        or binary data in parts.
-
-        :raises TypeError: If the content type is unsupported.
-        :return: A generator yielding chunks of response content.
-        :rtype: Iterator[bytes]
-        """
-        if isinstance(self.content, (bytes, str)):
-            yield self.get_content()
-        else:
-            raise TypeError("Unsupported content type for response")
 
     def get_content(self) -> bytes:
         """
@@ -99,8 +88,25 @@ class Response:
             return self.content.encode('utf-8')
         elif isinstance(self.content, (dict, list)):
             return json.dumps(self.content).encode('utf-8')
+        elif isinstance(self.content, Page):
+            html_content = self.content.render()
+            return html_content.encode('utf-8')
         else:
             return str(self.content).encode('utf-8')
+
+    def iter_content(self):
+        """
+        Yield the response content in chunks. This method is useful for streaming large files
+        or binary data in parts.
+
+        :raises TypeError: If the content type is unsupported.
+        :return: A generator yielding chunks of response content.
+        :rtype: Iterator[bytes]
+        """
+        if isinstance(self.content, (bytes, str, Page)):
+            yield self.get_content()
+        else:
+            raise TypeError("Unsupported content type for response")
 
 
 def redirect(location: str, status_code: int = 302) -> Response:
