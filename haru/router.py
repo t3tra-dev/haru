@@ -32,91 +32,7 @@ class Route:
         self.methods: List[str] = methods
         self.blueprint: Optional[Any] = blueprint
         self.param_types: Dict[str, str] = {}
-        self.pattern: Pattern = self._compile_path(path)
-
-    def _compile_path(self, path: str) -> Pattern:
-        """
-        Compiles the route path into a regular expression pattern.
-
-        :param path: The route path.
-        :type path: str
-        :return: The compiled regular expression pattern.
-        :rtype: Pattern
-        """
-        # Replace path parameters like '<name:type>' with regex groups
-        param_regex = re.compile(r'<(\w+)(?::(\w+))?>')
-        pattern = '^'
-        last_pos = 0
-
-        for match in param_regex.finditer(path):
-            start, end = match.span()
-            param_name, param_type = match.groups()
-            param_type = param_type or 'str'  # Default type is 'str'
-            self.param_types[param_name] = param_type
-
-            # Add the text before the parameter
-            pattern += re.escape(path[last_pos:start])
-
-            # Add the parameter pattern
-            if param_type == 'str':
-                regex = f'(?P<{param_name}>[^/]+)'
-            elif param_type == 'int':
-                regex = f'(?P<{param_name}>\\d+)'
-            elif param_type == 'float':
-                regex = f'(?P<{param_name}>\\d+\\.\\d+)'
-            elif param_type == 'path':
-                regex = f'(?P<{param_name}>.+)'
-            else:
-                raise ValueError(f"Unsupported parameter type: {param_type}")
-
-            pattern += regex
-            last_pos = end
-
-        # Add the remaining text after the last parameter
-        pattern += re.escape(path[last_pos:])
-        pattern += '$'
-        return re.compile(pattern)
-
-    def match(self, path: str) -> Optional[Dict[str, Any]]:
-        """
-        Check if the provided path matches the route's pattern.
-
-        :param path: The URL path to match against the route's pattern.
-        :type path: str
-        :return: A dictionary of matched parameters if the path matches, otherwise None.
-        :rtype: Optional[Dict[str, Any]]
-        """
-        match = self.pattern.match(path)
-        if match:
-            params = match.groupdict()
-            # Convert params to their specified types
-            for name, value in params.items():
-                param_type = self.param_types.get(name, 'str')
-                params[name] = self._convert_param(value, param_type)
-            return params
-        return None
-
-    def _convert_param(self, value: str, param_type: str) -> Any:
-        """
-        Convert the parameter value to the specified type.
-
-        :param value: The parameter value as a string.
-        :type value: str
-        :param param_type: The type to convert to.
-        :type param_type: str
-        :return: The converted value.
-        :rtype: Any
-        """
-        if param_type == 'str':
-            return value
-        elif param_type == 'int':
-            return int(value)
-        elif param_type == 'float':
-            return float(value)
-        elif param_type == 'path':
-            return value  # 'path' type remains as string
-        else:
-            return value  # Unknown type, return as string
+        # The pattern will be compiled in the Router
 
 
 class Router:
@@ -133,6 +49,8 @@ class Router:
         Initialize a new `Router` instance with an empty list of routes.
         """
         self.routes: List[Route] = []
+        self.compiled: bool = False
+        self._regex: Optional[Pattern] = None
 
     def add_route(self, path: str, handler: Callable, methods: Optional[List[str]] = None, blueprint: Optional[Any] = None) -> None:
         """
@@ -159,6 +77,7 @@ class Router:
 
         route = Route(path, handler, methods, blueprint)
         self.routes.append(route)
+        self.compiled = False  # Mark as needing recompilation
 
     def match(self, path: str, method: str) -> Tuple[Optional[Route], Dict[str, Any], List[str]]:
         """
@@ -172,11 +91,146 @@ class Router:
                  and a list of allowed methods for the path.
         :rtype: Tuple[Optional[Route], Dict[str, Any], List[str]]
         """
-        allowed_methods: List[str] = []
+        if not self.compiled:
+            self._compile_routes()
+        match = self._regex.match(path)
+        if not match:
+            # No match found, collect allowed methods for this path
+            allowed_methods = self._collect_allowed_methods(path)
+            return None, {}, allowed_methods
+
+        # Identify which route matched
+        route_index = None
+        for i in range(len(self.routes)):
+            group_name = f'route_{i}'
+            if match.group(group_name):
+                route_index = i
+                break
+        if route_index is None:
+            return None, {}, []
+
+        route = self.routes[route_index]
+        if method.upper() not in route.methods:
+            allowed_methods = route.methods
+            return None, {}, allowed_methods
+
+        # Extract parameters
+        params = {}
+        for name, value in match.groupdict().items():
+            if value is not None:
+                m = re.match(r'param_(\d+)_(.+)', name)
+                if m:
+                    idx, param_name = m.groups()
+                    idx = int(idx)
+                    if idx == route_index:
+                        param_type = route.param_types[param_name]
+                        params[param_name] = self._convert_param(value, param_type)
+        return route, params, []
+
+    def _compile_routes(self) -> None:
+        """
+        Compile all registered routes into a single regular expression.
+        """
+        patterns = []
+        for index, route in enumerate(self.routes):
+            pattern, param_types = self._compile_route_pattern(route.path, index)
+            route.param_types = param_types
+            group_name = f'route_{index}'
+            patterns.append(f'(?P<{group_name}>' + pattern + ')')
+        combined_pattern = '^(' + '|'.join(patterns) + ')$'
+        self._regex = re.compile(combined_pattern)
+        self.compiled = True
+
+    def _compile_route_pattern(self, path: str, route_index: int) -> Tuple[str, Dict[str, str]]:
+        """
+        Compile an individual route's path pattern into a regular expression fragment.
+
+        :param path: The route path.
+        :type path: str
+        :param route_index: The index of the route in the routes list.
+        :type route_index: int
+        :return: A tuple containing the regex pattern and parameter types.
+        :rtype: Tuple[str, Dict[str, str]]
+        """
+        param_regex = re.compile(r'<(\w+)(?::(\w+))?>')
+        pattern = ''
+        last_pos = 0
+        param_types = {}
+        for match in param_regex.finditer(path):
+            start, end = match.span()
+            param_name, param_type = match.groups()
+            param_type = param_type or 'str'  # Default type is 'str'
+            param_types[param_name] = param_type
+
+            # Add the text before the parameter
+            pattern += re.escape(path[last_pos:start])
+
+            # Add the parameter pattern with unique group name
+            if route_index is not None and route_index >= 0:
+                group_name = f'param_{route_index}_{param_name}'
+            else:
+                # Use param_name as group name when route_index is None or negative
+                group_name = param_name
+
+            # Ensure group name is a valid Python identifier
+            if not group_name.isidentifier():
+                group_name = f'param_{abs(route_index)}_{param_name}' if route_index is not None else param_name
+                group_name = re.sub(r'\W|^(?=\d)', '_', group_name)
+
+            if param_type == 'str':
+                regex = f'(?P<{group_name}>[^/]+)'
+            elif param_type == 'int':
+                regex = f'(?P<{group_name}>\\d+)'
+            elif param_type == 'float':
+                regex = f'(?P<{group_name}>\\d+\\.\\d+)'
+            elif param_type == 'path':
+                regex = f'(?P<{group_name}>.+)'
+            else:
+                raise ValueError(f"Unsupported parameter type: {param_type}")
+
+            pattern += regex
+            last_pos = end
+
+        # Add the remaining text after the last parameter
+        pattern += re.escape(path[last_pos:])
+        return pattern, param_types
+
+    def _collect_allowed_methods(self, path: str) -> List[str]:
+        """
+        Collect allowed HTTP methods for a given path when no route matches.
+
+        :param path: The URL path to check.
+        :type path: str
+        :return: A list of allowed methods for the path.
+        :rtype: List[str]
+        """
+        allowed_methods = []
         for route in self.routes:
-            params = route.match(path)
-            if params is not None:
+            # Pass route_index=None to avoid including it in group names
+            pattern, _ = self._compile_route_pattern(route.path, None)
+            route_regex = re.compile('^' + pattern + '$')
+            if route_regex.match(path):
                 allowed_methods.extend(route.methods)
-                if method.upper() in route.methods:
-                    return route, params, []
-        return None, {}, allowed_methods
+        return allowed_methods
+
+    def _convert_param(self, value: str, param_type: str) -> Any:
+        """
+        Convert the parameter value to the specified type.
+
+        :param value: The parameter value as a string.
+        :type value: str
+        :param param_type: The type to convert to.
+        :type param_type: str
+        :return: The converted value.
+        :rtype: Any
+        """
+        if param_type == 'str':
+            return value
+        elif param_type == 'int':
+            return int(value)
+        elif param_type == 'float':
+            return float(value)
+        elif param_type == 'path':
+            return value  # 'path' type remains as string
+        else:
+            return value  # Unknown type, return as string

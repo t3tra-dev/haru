@@ -589,13 +589,17 @@ class Haru:
         :rtype: Response
         """
         handler = None
-        if isinstance(exc, HTTPException):
-            handler = self.error_handlers.get(exc.status_code)
 
+        # First, check for handlers registered with exception classes
         for exc_type in self.error_handlers:
-            if isinstance(exc, exc_type):
-                handler = self.error_handlers[exc_type]
-                break
+            if isinstance(exc_type, type) and issubclass(exc_type, Exception):
+                if isinstance(exc, exc_type):
+                    handler = self.error_handlers[exc_type]
+                    break
+
+        # If no handler found and it's an HTTPException, check for handlers registered with status codes
+        if handler is None and isinstance(exc, HTTPException):
+            handler = self.error_handlers.get(exc.status_code)
 
         if handler:
             result = self._run_middleware_method_sync(handler, request, exc)
