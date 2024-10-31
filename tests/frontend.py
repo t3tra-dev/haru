@@ -1,20 +1,18 @@
-from haru.ui import Element, Props, create_element
+from haru.ui import Page, Div, H1
+from haru.ui.utils import Markdown
 
-view: Element = create_element(
-    'div',
-    props=Props(className='view', id='view'),
-    children=[
-        create_element(
-            'h1',
-            props=Props(className='title'),
-            children=['Hello, World!']
-        ),
-        create_element(
-            'button',
-            props=Props(className='button', onClick=lambda: print('Button clicked!')),
-            children=['Click Me']
-        )
-    ]
+view: Page = Page(
+    Div(
+        H1('Hello, World!'),
+        Markdown("# Hello, World!\n\nThis is a test of the UI modules."),
+        attributes={'id': 'container'}
+    )
 )
 
-view.render()
+print(view.query_selector_all('h1'))
+
+print(view.get_element_by_id('container'))
+
+view.dispatch_info(title='Document Title')
+
+print(view.render())
