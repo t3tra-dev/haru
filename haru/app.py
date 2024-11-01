@@ -87,7 +87,7 @@ class Haru:
         :rtype: Callable
         """
 
-        def decorator(func: Callable) -> Callable:
+        def decorator(func: Callable[[Request], Any]) -> Callable[[Request], Any]:
             if getattr(func, "is_websocket", False):
                 # Register WebSocket route
                 if not websockets_available:
@@ -102,19 +102,19 @@ class Haru:
         return decorator
 
     def errorhandler(
-        self, exception_or_status_code: Union[int, Type[Exception]]
+        self, exc: Union[int, Type[Exception]]
     ) -> Callable:
         """
         Register an error handler for a specific exception or HTTP status code.
 
-        :param exception_or_status_code: The exception class or HTTP status code to handle.
-        :type exception_or_status_code: Union[int, Type[Exception]]
+        :param exc: The exception class or HTTP status code to handle.
+        :type exc: Union[int, Type[Exception]]
         :return: A decorator to wrap the error handler function.
         :rtype: Callable
         """
 
         def decorator(func: Callable) -> Callable:
-            self.error_handlers[exception_or_status_code] = func
+            self.error_handlers[exc] = func
             return func
 
         return decorator

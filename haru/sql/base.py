@@ -5,8 +5,9 @@ This module defines the base classes and engine management for the ORM.
 from typing import Dict, Optional
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine import Engine, create_engine
+from sqlalchemy.orm.decl_api import DeclarativeMeta
 
-Base = declarative_base()
+Base: DeclarativeMeta = declarative_base()
 
 engine_dict: Dict[str, Engine] = {}
 

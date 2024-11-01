@@ -5,6 +5,7 @@ into components, each with its own routes and middleware.
 """
 
 from typing import Callable, List, Optional, Type, TypeVar, Any
+from .request import Request
 from .router import Router
 from .middleware import Middleware
 
@@ -56,7 +57,7 @@ class Blueprint:
         :rtype: Callable[[Callable], Callable]
         """
 
-        def decorator(func: Callable) -> Callable:
+        def decorator(func: Callable[[Request], Any]) -> Callable[[Request], Any]:
             full_path = self._full_path(path)
             self.router.add_route(full_path, func, methods, blueprint=self)
             return func

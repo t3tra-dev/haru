@@ -187,8 +187,8 @@ class Page:
                 child
                 for child in self.head.children
                 if isinstance(child, Meta)
-                and child.attributes.get("name") == name
-                or child.attributes.get("property") == name
+                and child.attributes.get("name") == name  # noqa
+                or child.attributes.get("property") == name  # noqa
             ),
             None,
         )

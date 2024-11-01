@@ -169,7 +169,7 @@ class Markdown(Element):
                     else (
                         "center"
                         if align_indicator.startswith(":")
-                        and align_indicator.endswith(":")
+                        and align_indicator.endswith(":")  # noqa
                         else "left"
                     )
                 )

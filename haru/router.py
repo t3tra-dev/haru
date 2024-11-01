@@ -7,6 +7,7 @@ the correct handler is executed based on the request's path and HTTP method.
 from __future__ import annotations
 from typing import Callable, Dict, List, Optional, Tuple, Any, Pattern
 import re
+from .request import Request
 
 __all__ = ["Route", "Router"]
 
@@ -19,7 +20,7 @@ class Route:
     :param path: The URL path pattern for this route. Supports parameterized paths like '/users/<username:str>'.
     :type path: str
     :param handler: The function that handles requests matching this route.
-    :type handler: Callable
+    :type handler: Callable[[Request], Any]
     :param methods: A list of HTTP methods (e.g., GET, POST) that this route allows.
     :type methods: List[str]
     :param blueprint: The blueprint this route is associated with, if any.
@@ -29,12 +30,12 @@ class Route:
     def __init__(
         self,
         path: str,
-        handler: Callable,
+        handler: Callable[[Request], Any],
         methods: List[str],
         blueprint: Optional[Any] = None,
-    ):
+    ) -> None:
         self.path: str = path
-        self.handler: Callable = handler
+        self.handler: Callable[[Request], Any] = handler
         self.methods: List[str] = methods
         self.blueprint: Optional[Any] = blueprint
         self.param_types: Dict[str, str] = {}
