@@ -29,7 +29,7 @@ from .element import (
     Td,
 )
 
-__all__ = ["VStack", "HStack", "Markdown", "DataTable"]
+__all__ = ["VStack", "HStack", "Markdown", "DataTable", "FormField", "FormGenerator"]
 
 
 class VStack(Element):
