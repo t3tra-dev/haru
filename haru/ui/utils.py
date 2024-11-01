@@ -27,7 +27,39 @@ from .element import (
     Td,
 )
 
-__all__ = ["Markdown"]
+__all__ = ["VStack", "HStack", "Markdown", "DataTable"]
+
+
+class VStack(Element):
+    """
+    A vertical stack of elements.
+    """
+
+    def __init__(self, *elements: Element) -> None:
+        super().__init__(
+            "div",
+            attributes={
+                "class": "vstack",
+                "style": "display: flex; flex-direction: column; gap: 1rem;",
+            },
+            children=elements,
+        )
+
+
+class HStack(Element):
+    """
+    A horizontal stack of elements.
+    """
+
+    def __init__(self, *elements: Element) -> None:
+        super().__init__(
+            "div",
+            attributes={
+                "class": "hstack",
+                "style": "display: flex; flex-direction: row; gap: 1rem;",
+            },
+            children=elements,
+        )
 
 
 class Markdown(Element):
@@ -184,3 +216,15 @@ class Markdown(Element):
         text = re.sub(r"~~(.+?)~~", r"<del>\1</del>", text)  # Strikethrough
         text = re.sub(r"`(.+?)`", lambda m: str(Pre(m.group(1))), text)  # Inline code
         return text
+
+
+class DataTable(Element):
+    """
+    A class to render a table of data.
+    """
+
+    def __init__(self, data: List[List[Union[str, int]]]) -> None:
+        super().__init__("table")
+        self.children = [
+            Tr(*[Td(cell) for cell in row]) for row in data
+        ]

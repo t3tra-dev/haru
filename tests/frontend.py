@@ -1,10 +1,10 @@
-from haru.ui import Page, Div, H1
-from haru.ui.utils import Markdown
+from haru.ui import Page, Div
+from haru.ui.utils import Markdown, DataTable
 
 view: Page = Page(
     Div(
-        H1("Hello, World!"),
         Markdown("# Hello, World!\n\nThis is a test of the UI modules."),
+        DataTable([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
         attributes={"id": "container"},
     )
 )
