@@ -3,10 +3,12 @@ Utility functions for the haru.ui module.
 """
 
 import re
-from typing import Union, List
+from typing import Dict, Literal, Optional, Union, List
 from .element import (
     Element,
     Div,
+    Input,
+    Label,
     Pre,
     Code,
     Ul,
@@ -225,6 +227,56 @@ class DataTable(Element):
 
     def __init__(self, data: List[List[Union[str, int]]]) -> None:
         super().__init__("table")
-        self.children = [
-            Tr(*[Td(cell) for cell in row]) for row in data
+        self.children = [Tr(*[Td(cell) for cell in row]) for row in data]
+
+
+class FormGenerator(Element):
+    """
+    A class to generate a form from a dictionary of fields.
+    """
+
+    class Field(Element):
+        """
+        A class to represent a field in a form.
+        """
+
+        input_types = Literal[
+            "button",
+            "checkbox",
+            "color",
+            "date",
+            "datetime-local",
+            "email",
+            "file",
+            "hidden",
+            "image",
+            "month",
+            "number",
+            "password",
+            "radio",
+            "range",
+            "reset",
+            "search",
+            "submit",
+            "tel",
+            "text",
+            "time",
+            "url",
+            "week",
         ]
+
+        def __init__(
+            self,
+            label: str,
+            input_type: Optional[input_types] = "text",
+            placeholder: Optional[str] = None,
+        ) -> None:
+            super().__init__("div")
+            self.children = [
+                Label(label),
+                Input(type=input_type, placeholder=placeholder),
+            ]
+
+    def __init__(self, fields: Dict[str, Field], action: Optional[str] = None) -> None:
+        super().__init__("form", attributes={"action": action})
+        self.children = [field for field in fields.values()]
