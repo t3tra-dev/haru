@@ -183,7 +183,7 @@ class Element:
                 (
                     child.render()
                     if isinstance(child, Element)
-                    else (child if self.raw else html.escape(child))
+                    else (str(child) if self.raw else html.escape(str(child)))
                 )
                 for child in self.children
             ]

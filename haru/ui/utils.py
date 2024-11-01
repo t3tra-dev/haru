@@ -3,10 +3,12 @@ Utility functions for the haru.ui module.
 """
 
 import re
-from typing import Union, List
+from typing import Dict, Literal, Optional, Union, List
 from .element import (
     Element,
     Div,
+    Input,
+    Label,
     Pre,
     Code,
     Ul,
@@ -27,7 +29,39 @@ from .element import (
     Td,
 )
 
-__all__ = ["Markdown"]
+__all__ = ["VStack", "HStack", "Markdown", "DataTable", "FormField", "FormGenerator"]
+
+
+class VStack(Element):
+    """
+    A vertical stack of elements.
+    """
+
+    def __init__(self, *elements: Element) -> None:
+        super().__init__(
+            "div",
+            attributes={
+                "class": "vstack",
+                "style": "display: flex; flex-direction: column; gap: 1rem;",
+            },
+            children=elements,
+        )
+
+
+class HStack(Element):
+    """
+    A horizontal stack of elements.
+    """
+
+    def __init__(self, *elements: Element) -> None:
+        super().__init__(
+            "div",
+            attributes={
+                "class": "hstack",
+                "style": "display: flex; flex-direction: row; gap: 1rem;",
+            },
+            children=elements,
+        )
 
 
 class Markdown(Element):
@@ -184,3 +218,68 @@ class Markdown(Element):
         text = re.sub(r"~~(.+?)~~", r"<del>\1</del>", text)  # Strikethrough
         text = re.sub(r"`(.+?)`", lambda m: str(Pre(m.group(1))), text)  # Inline code
         return text
+
+
+class DataTable(Element):
+    """
+    A class to render a table of data.
+    """
+
+    def __init__(self, data: List[List[Union[str, int]]]) -> None:
+        super().__init__("table")
+        self.children = [Tr(*[Td(cell) for cell in row]) for row in data]
+
+
+class FormField(Element):
+    """
+    A class to represent a field in a form.
+    """
+
+    input_types = Literal[
+        "button",
+        "checkbox",
+        "color",
+        "date",
+        "datetime-local",
+        "email",
+        "file",
+        "hidden",
+        "image",
+        "month",
+        "number",
+        "password",
+        "radio",
+        "range",
+        "reset",
+        "search",
+        "submit",
+        "tel",
+        "text",
+        "time",
+        "url",
+        "week",
+    ]
+
+    def __init__(
+        self,
+        label: str,
+        input_type: Optional[input_types] = "text",
+        placeholder: Optional[str] = None,
+    ) -> None:
+        super().__init__("div")
+        self.children = [
+            Label(label),
+            Input(type=input_type, placeholder=placeholder),
+        ]
+
+
+class FormGenerator(Element):
+    """
+    A class to generate a form from a dictionary of fields.
+    """
+
+    def __init__(
+        self, fields: Dict[str, FormField], action: Optional[str] = None
+    ) -> None:
+        super().__init__("form", attributes={"action": action})
+        self.children = [field for field in fields.values()]
