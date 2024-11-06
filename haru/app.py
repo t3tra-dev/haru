@@ -318,6 +318,7 @@ class Haru:
                 headers=headers,
                 body=body,
                 client_address=client_address,
+                app=self,
             )
 
             # Process the request and match the route
@@ -373,6 +374,13 @@ class Haru:
 
             for mw in middlewares:
                 self._run_middleware_method_sync(mw.before_response, request, response)
+
+            if hasattr(request, '_auth_cookies'):
+                for action, key, value in request._auth_cookies:
+                    if action == 'set':
+                        response.set_cookie(key, value, httponly=True, path='/')
+                    elif action == 'delete':
+                        response.delete_cookie(key, path='/')
 
             # Send response
             status = f"{response.status_code} {self._http_status_message(response.status_code)}"
@@ -438,6 +446,7 @@ class Haru:
                     headers=headers,
                     body=body,
                     client_address=client_address,
+                    app=self,
                 )
 
                 # Process the request and match the route
@@ -522,6 +531,12 @@ class Haru:
 
             except Exception as e:
                 response = await self._handle_exception_async(request, e)
+                if hasattr(request, '_auth_cookies'):
+                    for action, key, value in request._auth_cookies:
+                        if action == 'set':
+                            response.set_cookie(key, value, httponly=True, path='/')
+                        elif action == 'delete':
+                            response.delete_cookie(key, path='/')
 
                 await send(
                     {

@@ -3,8 +3,13 @@ This module defines classes for handling HTTP requests in the Haru web framework
 It includes the `Request` class, which encapsulates details about an incoming HTTP request.
 """
 
-from typing import Any, Dict, Optional
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse
+
+if TYPE_CHECKING:
+    from .app import Haru
+    from .auth import UserMixin
 
 __all__ = ["Request"]
 
@@ -33,7 +38,9 @@ class Request:
         headers: Dict[str, str],
         body: bytes = b"",
         client_address: Optional[str] = None,
+        app: 'Haru' = None
     ):
+        self.app: 'Haru' = app
         self.method: str = method
         self.path: str = path
         self.headers: Dict[str, str] = headers
@@ -132,3 +139,29 @@ class Request:
         :rtype: bytes
         """
         return self.body
+
+    def login(self, user: 'UserMixin'):
+        """
+        Log in the specified user.
+        """
+        if self.app.auth_manager:
+            self.app.auth_manager.login(self, user)
+
+    def logout(self):
+        """
+        Log out the current user.
+        """
+        if self.app.auth_manager:
+            self.app.auth_manager.logout(self)
+
+    @property
+    def current_user(self) -> Optional[Any]:
+        """
+        Return the authenticated user if logged in, otherwise None.
+        """
+        if not hasattr(self, '_current_user'):
+            if self.app.auth_manager:
+                self._current_user = self.app.auth_manager.load_user(self)
+            else:
+                self._current_user = None
+        return self._current_user

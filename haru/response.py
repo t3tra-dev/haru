@@ -4,6 +4,7 @@ The `Response` class is responsible for managing the response content, headers, 
 and other properties that are sent back to the client after processing an HTTP request.
 """
 
+from datetime import UTC, datetime, timedelta
 import os
 import json
 from typing import Any, Dict, Optional
@@ -110,6 +111,60 @@ class Response:
             yield self.get_content()
         else:
             raise TypeError("Unsupported content type for response")
+
+    def set_cookie(
+        self,
+        key: str,
+        value: str,
+        max_age: Optional[int] = None,
+        expires: Optional[datetime] = None,
+        path: str = '/',
+        domain: Optional[str] = None,
+        secure: bool = False,
+        httponly: bool = False,
+        samesite: Optional[str] = None
+    ):
+        """
+        Set a cookie in the response headers.
+        """
+        cookie = f'{key}={value}'
+        if expires:
+            cookie += f'; Expires={expires.strftime("%a, %d-%b-%Y %H:%M:%S GMT")}'
+        if max_age:
+            cookie += f'; Max-Age={max_age}'
+        if domain:
+            cookie += f'; Domain={domain}'
+        if path:
+            cookie += f'; Path={path}'
+        if secure:
+            cookie += '; Secure'
+        if httponly:
+            cookie += '; HttpOnly'
+        if samesite:
+            cookie += f'; SameSite={samesite}'
+
+        self.headers.setdefault('Set-Cookie', '')
+        if self.headers['Set-Cookie']:
+            self.headers['Set-Cookie'] += f', {cookie}'
+        else:
+            self.headers['Set-Cookie'] = cookie
+
+    def delete_cookie(
+        self,
+        key: str,
+        path: str = '/',
+        domain: Optional[str] = None
+    ):
+        """
+        Delete a cookie by setting it to expire in the past.
+        """
+        self.set_cookie(
+            key,
+            '',
+            expires=datetime.now(UTC) - timedelta(days=1),
+            path=path,
+            domain=domain
+        )
 
 
 def redirect(location: str, status_code: int = 302) -> Response:

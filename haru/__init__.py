@@ -21,6 +21,7 @@ import logging
 from typing import NamedTuple, Literal
 
 __all__ = [
+    "auth",
     "exceptions",
     "middlewares",
     "ui",
@@ -37,6 +38,7 @@ __all__ = [
     "upgrade_websocket",
 ]
 
+from . import auth
 from . import exceptions
 from . import middlewares
 from . import ui
