@@ -38,9 +38,9 @@ class Request:
         headers: Dict[str, str],
         body: bytes = b"",
         client_address: Optional[str] = None,
-        app: 'Haru' = None
+        app: Haru = None
     ):
-        self.app: 'Haru' = app
+        self.app: Haru = app
         self.method: str = method
         self.path: str = path
         self.headers: Dict[str, str] = headers
@@ -55,6 +55,7 @@ class Request:
         self.form: Dict[str, Any] = self._parse_form_data()
         self.json: Optional[Dict[str, Any]] = self._parse_json()
         self.files: Dict[str, Any] = {}
+        self._current_user: Optional[Any] = None
 
     def _parse_cookies(self) -> Dict[str, str]:
         """
@@ -140,12 +141,14 @@ class Request:
         """
         return self.body
 
-    def login(self, user: 'UserMixin'):
+    def login(self, user: UserMixin):
         """
         Log in the specified user.
         """
         if self.app.auth_manager:
             self.app.auth_manager.login(self, user)
+        if self.app.oauth_manager:
+            self.app.oauth_manager.login(self, user)
 
     def logout(self):
         """
@@ -159,9 +162,11 @@ class Request:
         """
         Return the authenticated user if logged in, otherwise None.
         """
-        if not hasattr(self, '_current_user'):
-            if self.app.auth_manager:
-                self._current_user = self.app.auth_manager.load_user(self)
-            else:
-                self._current_user = None
-        return self._current_user
+        return getattr(self, '_current_user', None)
+
+    @current_user.setter
+    def current_user(self, user: Optional[Any]):
+        """
+        Set the current user.
+        """
+        self._current_user = user
