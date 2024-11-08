@@ -1,4 +1,5 @@
-from haru import Haru, WebSocketServerProtocol, upgrade_websocket
+from haru import Haru
+from haru.websocket import WebSocketServerProtocol, upgrade_websocket
 
 app = Haru(__name__)
 
