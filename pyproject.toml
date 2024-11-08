@@ -52,6 +52,5 @@ Repository = "https://github.com/t3tra-dev/haru.git"
 Issues = "https://github.com/t3tra-dev/haru/issues"
 
 [project.optional-dependencies]
-all = ["websockets>=10.0", "sqlalchemy>=2.0.0"]
-ws = ["websockets>=10.0"]
+all = ["sqlalchemy>=2.0.0"]
 sql = ["sqlalchemy>=2.0.0"]

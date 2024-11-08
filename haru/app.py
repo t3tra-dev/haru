@@ -30,15 +30,7 @@ from .exceptions import (
 )
 from .blueprint import Blueprint
 from .middleware import Middleware
-
-try:
-    from .websocket import WebSocketServer, upgrade_websocket
-
-    websockets_available = True
-except ImportError:
-    WebSocketServer = None  # type: ignore
-    upgrade_websocket = None  # type: ignore
-    websockets_available = False
+from .websocket import WebSocketServer
 
 __all__ = ["Haru"]
 
@@ -89,11 +81,6 @@ class Haru:
 
         def decorator(func: Callable[[Request], Any]) -> Callable[[Request], Any]:
             if getattr(func, "is_websocket", False):
-                # Register WebSocket route
-                if not websockets_available:
-                    raise ImportError(
-                        "The 'websockets' library is required for WebSocket support. Install with 'pip install haru[ws]'"
-                    )
                 self.websocket_routes[path] = func
             else:
                 self.router.add_route(path, func, methods)
@@ -248,11 +235,6 @@ class Haru:
             )
 
         if self.websocket_routes:
-            # Start WebSocket server
-            if not websockets_available:
-                raise ImportError(
-                    "The 'websockets' library is required for WebSocket support. Install with 'pip install haru[ws]'"
-                )
             ws_host = ws_host or host
             ws_port = ws_port or (port + 1)
             self.websocket_server = WebSocketServer(ws_host, ws_port)

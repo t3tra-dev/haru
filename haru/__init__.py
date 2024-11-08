@@ -33,9 +33,7 @@ __all__ = [
     "BytesWrapper",
     "Response",
     "redirect",
-    "WebSocketServerProtocol",
-    "WebSocketServer",
-    "upgrade_websocket",
+    "websocket"
 ]
 
 from . import auth
@@ -43,12 +41,12 @@ from . import exceptions
 from . import middlewares
 from . import ui
 from . import webapi
+from . import websocket
 from .app import Haru
 from .request import Request
 from .response import Response, redirect
 from .blueprint import Blueprint
 from .wrappers import FileWrapper, BytesWrapper
-from .websocket import WebSocketServerProtocol, WebSocketServer, upgrade_websocket
 
 
 class VersionInfo(NamedTuple):
