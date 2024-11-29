@@ -25,7 +25,6 @@ __all__ = [
     "exceptions",
     "middlewares",
     "ui",
-    "webapi",
     "Haru",
     "Blueprint",
     "Request",
@@ -40,7 +39,6 @@ from . import auth
 from . import exceptions
 from . import middlewares
 from . import ui
-from . import webapi
 from . import websocket
 from .app import Haru
 from .request import Request
